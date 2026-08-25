@@ -1,0 +1,1 @@
+var e=`field-ledger.admin-code`;function t(t){let n=t.trim();if(!(typeof window>`u`||!n))try{window.sessionStorage.setItem(e,n)}catch{}}function n(){if(typeof window>`u`)return``;try{return window.sessionStorage.getItem(`field-ledger.admin-code`)??``}catch{return``}}function r(){if(!(typeof window>`u`))try{window.sessionStorage.removeItem(e)}catch{}}export{n,t as r,r as t};

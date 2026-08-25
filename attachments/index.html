@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="description" content="Technician Toolkit — mobile code lookup, calculator, invoices and ticket log" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <title>Technician Toolkit</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <!-- LOGIN -->
+  <div id="login-screen" class="screen active">
+    <div class="login-card">
+      <div class="logo">🧰</div>
+      <h1>Technician Toolkit</h1>
+      <p class="subtitle">Field tools · Codes · Invoices · Log</p>
+      <form id="login-form">
+        <label for="pin">Enter PIN</label>
+        <input type="password" id="pin" inputmode="numeric" pattern="[0-9]*" maxlength="8" placeholder="••••" autocomplete="current-password" required />
+        <div class="login-actions">
+          <button type="button" id="btn-forgot-pin" class="forgot-link" hidden>Forgot PIN?</button>
+          <button type="submit" class="btn primary">Unlock</button>
+        </div>
+      </form>
+      <div id="forgot-panel" hidden>
+        <p class="hint">Enter recovery code to reset PIN.</p>
+        <input type="text" id="recovery-code" placeholder="Recovery code" autocomplete="off" />
+        <button type="button" id="btn-reset-pin" class="btn secondary full">Reset PIN</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN APP -->
+  <div id="app" class="screen">
+    <header class="app-header">
+      <div class="header-left">
+        <button id="btn-menu" class="icon-btn" aria-label="Menu">☰</button>
+        <div id="menu-dropdown" class="dropdown" hidden>
+          <button type="button" data-action="add-tech">Add Technician</button>
+          <button type="button" data-action="remove-tech">Remove Technician</button>
+          <button type="button" data-action="view-log">View Ticket Log</button>
+          <button type="button" data-action="view-invoices">View Invoices</button>
+          <hr />
+          <button type="button" data-action="settings">Settings</button>
+          <button type="button" data-action="logout" class="danger">Log Out</button>
+        </div>
+      </div>
+      <h1 id="header-title">Dashboard</h1>
+      <div class="header-right">
+        <select id="tech-select" class="tech-select" title="Active technician"></select>
+      </div>
+    </header>
+
+    <main id="main-content">
+      <!-- DASHBOARD -->
+      <section id="tab-dash" class="tab active">
+        <div class="period-selector">
+          <select id="dash-period">
+            <option value="thisWeek">This Week</option>
+            <option value="lastWeek" selected>Last Week</option>
+            <option value="last7">Last 7 Days</option>
+            <option value="thisMonth">This Month</option>
+            <option value="lastMonth">Last Month</option>
+            <option value="all">All Logged</option>
+          </select>
+        </div>
+        <p class="hint center">Tap any number for calculation details</p>
+        <div class="stats-grid">
+          <div class="stat-card clickable" data-metric="tickets">
+            <div class="stat-value" id="dash-tickets">0</div>
+            <div class="stat-label">Tickets</div>
+          </div>
+          <div class="stat-card clickable" data-metric="revenue">
+            <div class="stat-value" id="dash-revenue">$0</div>
+            <div class="stat-label">Revenue</div>
+          </div>
+          <div class="stat-card clickable" data-metric="hrs">
+            <div class="stat-value" id="dash-hrs">0</div>
+            <div class="stat-label">Billable Hrs</div>
+          </div>
+          <div class="stat-card clickable" data-metric="eff">
+            <div class="stat-value" id="dash-eff">0%</div>
+            <div class="stat-label">Efficiency</div>
+          </div>
+          <div class="stat-card wide clickable" data-metric="gross">
+            <div class="stat-value" id="dash-gross">$0</div>
+            <div class="stat-label">Gross Contribution</div>
+          </div>
+          <div class="stat-card wide clickable" data-metric="revhr">
+            <div class="stat-value" id="dash-rev-hr">$0</div>
+            <div class="stat-label">Rev / Billable Hr</div>
+          </div>
+        </div>
+        <div class="card">
+          <h3>By Category</h3>
+          <div id="dash-by-cat" class="mini-list"></div>
+        </div>
+        <div class="card">
+          <h3>Open Invoices</h3>
+          <div id="dash-open-invoices" class="mini-list"></div>
+        </div>
+      </section>
+
+      <!-- LOOKUP -->
+      <section id="tab-lookup" class="tab">
+        <div class="search-bar">
+          <input type="search" id="code-search" placeholder="Search codes, description…" autocomplete="off" />
+          <button id="btn-clear-search" class="icon-btn small" hidden>✕</button>
+        </div>
+        <div class="card smart-finder">
+          <h3>Smart Code Finder</h3>
+          <p class="hint">Hours + parts cost → best PM codes</p>
+          <div class="row">
+            <div class="field">
+              <label>Hours</label>
+              <input type="number" id="sf-hours" step="0.5" min="0" placeholder="1.5" />
+            </div>
+            <div class="field">
+              <label>Parts Cost $</label>
+              <input type="number" id="sf-parts" step="1" min="0" placeholder="50" />
+            </div>
+          </div>
+          <button id="btn-smart-find" class="btn primary full">Find Best Codes</button>
+          <div id="smart-results" class="results-list"></div>
+        </div>
+        <div class="filters">
+          <select id="filter-category"><option value="">All Categories</option></select>
+        </div>
+        <div id="code-list" class="code-list"></div>
+      </section>
+
+      <!-- CALCULATOR -->
+      <section id="tab-calc" class="tab">
+        <div class="card">
+          <h3>Labor & Material Calculator</h3>
+          <div class="field">
+            <label>Code (optional)</label>
+            <input type="text" id="calc-code" placeholder="e.g. PM2C" list="code-datalist" />
+            <datalist id="code-datalist"></datalist>
+          </div>
+          <div class="row">
+            <div class="field">
+              <label>List / Suggested $</label>
+              <input type="number" id="calc-list" step="0.01" min="0" />
+            </div>
+            <div class="field">
+              <label>Discount %</label>
+              <input type="number" id="calc-disc" step="1" min="0" max="50" value="0" />
+            </div>
+          </div>
+          <div class="row">
+            <div class="field">
+              <label>Billable Hours</label>
+              <input type="number" id="calc-hrs" step="0.25" min="0" />
+            </div>
+            <div class="field">
+              <label>Parts Cost $</label>
+              <input type="number" id="calc-parts" step="0.01" min="0" value="0" />
+            </div>
+          </div>
+          <div class="field">
+            <label>Preferred Customer?</label>
+            <select id="calc-pref">
+              <option value="0">No (0%)</option>
+              <option value="5">5%</option>
+              <option value="10">10%</option>
+              <option value="15">15% (max)</option>
+            </select>
+          </div>
+          <button id="btn-calc" class="btn primary full">Calculate</button>
+          <button id="btn-add-to-invoice" class="btn secondary full" style="margin-top:8px" hidden>Add to Invoice</button>
+        </div>
+        <div id="calc-results" class="card results" hidden>
+          <h3>Results</h3>
+          <div class="metric"><span>Suggested Final $</span><strong id="res-final">—</strong></div>
+          <div class="metric"><span>Discount $</span><strong id="res-disc$">—</strong></div>
+          <div class="metric"><span>Est. Wage Cost</span><strong id="res-wage">—</strong></div>
+          <div class="metric"><span>Gross after Wage</span><strong id="res-gross">—</strong></div>
+          <div class="metric"><span>Material Margin</span><strong id="res-mat-margin">—</strong></div>
+          <div class="metric highlight"><span>Best Matching Code</span><strong id="res-best-code">—</strong></div>
+        </div>
+      </section>
+
+      <!-- INVOICE -->
+      <section id="tab-invoice" class="tab">
+        <div class="card">
+          <h3>Build Invoice</h3>
+          <div class="row">
+            <div class="field">
+              <label>Invoice / Ref #</label>
+              <input type="text" id="inv-ref" placeholder="e.g. 73214" />
+            </div>
+            <div class="field">
+              <label>Status</label>
+              <select id="inv-status">
+                <option value="pending">Pending</option>
+                <option value="working">Working</option>
+                <option value="completed">Completed</option>
+              </select>
+            </div>
+          </div>
+          <div class="field">
+            <label>Customer / Notes</label>
+            <input type="text" id="inv-notes" placeholder="Optional" />
+          </div>
+          <div class="field">
+            <label>Preferred Customer Discount %</label>
+            <select id="inv-pref">
+              <option value="0">None</option>
+              <option value="5">5%</option>
+              <option value="10">10%</option>
+              <option value="15">15%</option>
+            </select>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <h3>Line Items</h3>
+            <button id="btn-add-line" class="btn small primary">+ Code</button>
+          </div>
+          <div id="inv-lines" class="inv-lines"></div>
+          <div class="inv-totals">
+            <div><span>Subtotal</span><strong id="inv-subtotal">$0</strong></div>
+            <div><span>Discount</span><strong id="inv-discount">$0</strong></div>
+            <div class="total"><span>Total</span><strong id="inv-total">$0</strong></div>
+            <div><span>Billable Hrs</span><strong id="inv-hrs">0</strong></div>
+          </div>
+          <p class="hint" id="inv-cap-note" hidden>Discount capped at max $ amount (Settings)</p>
+          <button id="btn-save-invoice" class="btn primary full">Save Invoice</button>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <h3>Invoice Log</h3>
+            <select id="inv-filter-status" class="mini-select">
+              <option value="">All statuses</option>
+              <option value="pending">Pending</option>
+              <option value="working">Working</option>
+              <option value="completed">Completed</option>
+            </select>
+          </div>
+          <div id="invoice-list" class="ticket-list"></div>
+        </div>
+      </section>
+
+      <!-- LOG -->
+      <section id="tab-log" class="tab">
+        <div class="card">
+          <h3>Quick Ticket Entry</h3>
+          <div class="field"><label>Date</label><input type="date" id="log-date" /></div>
+          <div class="field"><label>Reference / Ticket #</label><input type="text" id="log-ref" placeholder="e.g. 73214" /></div>
+          <div class="field"><label>Code</label><input type="text" id="log-code" list="code-datalist" placeholder="Select or type" /></div>
+          <div class="row">
+            <div class="field"><label>Final $ Charged</label><input type="number" id="log-final" step="0.01" min="0" /></div>
+            <div class="field"><label>Billable Hrs</label><input type="number" id="log-hrs" step="0.25" min="0" /></div>
+          </div>
+          <div class="row">
+            <div class="field"><label>Non-billable Hrs</label><input type="number" id="log-offhrs" step="0.25" min="0" value="0" /></div>
+            <div class="field"><label>Parts Cost $</label><input type="number" id="log-parts" step="0.01" min="0" value="0" /></div>
+          </div>
+          <div class="field"><label>Notes</label><textarea id="log-notes" rows="2" placeholder="Optional notes…"></textarea></div>
+          <button id="btn-log-save" class="btn primary full">Save Ticket</button>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <h3>Recent Tickets</h3>
+            <button id="btn-export-log" class="btn small secondary">Export CSV</button>
+          </div>
+          <div id="ticket-list" class="ticket-list"></div>
+        </div>
+      </section>
+
+      <!-- SETTINGS -->
+      <section id="tab-settings" class="tab">
+        <div class="card">
+          <h3>Security</h3>
+          <div class="field"><label>Change PIN</label><input type="password" id="set-new-pin" inputmode="numeric" maxlength="8" placeholder="New 4–8 digit PIN" /></div>
+          <div class="field"><label>Recovery Code</label><input type="text" id="set-recovery" placeholder="Default: RESET" autocomplete="off" /></div>
+          <button id="btn-save-pin" class="btn secondary full">Update Security</button>
+        </div>
+        <div class="card">
+          <h3>Rates & Discount Rules</h3>
+          <div class="row">
+            <div class="field"><label>Labor Rate $/hr</label><input type="number" id="set-labor-rate" step="1" min="0" /></div>
+            <div class="field"><label>Base Wage $/hr</label><input type="number" id="set-wage" step="0.5" min="0" /></div>
+          </div>
+          <div class="row">
+            <div class="field"><label>Parts Markup %</label><input type="number" id="set-markup" step="1" min="0" /></div>
+            <div class="field"><label>Max Preferred Disc %</label><input type="number" id="set-max-disc" step="1" min="0" max="50" /></div>
+          </div>
+          <div class="row">
+            <div class="field"><label>Max Discount $ Cap</label><input type="number" id="set-max-disc-dollars" step="1" min="0" value="200" /></div>
+            <div class="field"><label>Available Hrs / Week</label><input type="number" id="set-avail-hrs" step="1" min="1" /></div>
+          </div>
+          <button id="btn-save-rates" class="btn primary full">Save Rates</button>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3>Technicians</h3><button id="btn-add-tech" class="btn small primary">+ Add</button></div>
+          <div id="tech-list" class="tech-list"></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3>Code Book Editor</h3><button id="btn-add-code" class="btn small primary">+ Add</button></div>
+          <p class="hint">Admin: edit list prices, hours, parts cost, or deactivate codes.</p>
+          <div id="code-editor-list" class="code-editor-list"></div>
+        </div>
+        <div class="card danger-zone">
+          <h3>Data</h3>
+          <button id="btn-export-all" class="btn secondary full">Export All Data (JSON)</button>
+          <button id="btn-import-all" class="btn secondary full">Import Data</button>
+          <input type="file" id="import-file" accept=".json" hidden />
+          <button id="btn-reset-codes" class="btn danger full">Reset Codes to Default</button>
+          <button id="btn-clear-tickets" class="btn danger full">Clear All Tickets</button>
+        </div>
+        <div class="card">
+          <h3>About</h3>
+          <p class="hint">Technician Toolkit — field companion for the Full Workbook.<br>Data stays on this device. Admin edits codes & rates; techs log tickets and build invoices.</p>
+        </div>
+      </section>
+    </main>
+
+    <nav class="bottom-nav">
+      <button data-tab="dash" class="nav-btn active"><span class="nav-icon">▣</span><span>Dash</span></button>
+      <button data-tab="lookup" class="nav-btn"><span class="nav-icon">🔍</span><span>Lookup</span></button>
+      <button data-tab="calc" class="nav-btn"><span class="nav-icon">＋$</span><span>Calc</span></button>
+      <button data-tab="invoice" class="nav-btn"><span class="nav-icon">🧾</span><span>Invoice</span></button>
+      <button data-tab="log" class="nav-btn"><span class="nav-icon">✎</span><span>Log</span></button>
+    </nav>
+  </div>
+
+  <div id="code-modal" class="modal" hidden>
+    <div class="modal-content">
+      <h3 id="modal-title">Edit Code</h3>
+      <div class="field"><label>Code</label><input type="text" id="modal-code" /></div>
+      <div class="field"><label>Description</label><input type="text" id="modal-desc" /></div>
+      <div class="row">
+        <div class="field"><label>List Price $</label><input type="number" id="modal-price" step="0.01" /></div>
+        <div class="field"><label>Typical Hrs</label><input type="number" id="modal-hrs" step="0.25" /></div>
+      </div>
+      <div class="row">
+        <div class="field"><label>Parts Cost $</label><input type="number" id="modal-parts" step="0.01" /></div>
+        <div class="field"><label>Category</label><input type="text" id="modal-cat" /></div>
+      </div>
+      <div class="field"><label>Notes</label><input type="text" id="modal-notes" /></div>
+      <div class="field"><label><input type="checkbox" id="modal-active" checked /> Active</label></div>
+      <div class="modal-actions">
+        <button id="modal-cancel" class="btn secondary">Cancel</button>
+        <button id="modal-save" class="btn primary">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="metric-modal" class="modal" hidden>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="metric-title">Detail</h3>
+        <button type="button" id="metric-close" class="icon-btn">✕</button>
+      </div>
+      <div id="metric-body" class="metric-body"></div>
+      <button type="button" id="metric-close-btn" class="btn secondary full">Back to Dashboard</button>
+    </div>
+  </div>
+
+  <div id="line-modal" class="modal" hidden>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Add Code to Invoice</h3>
+        <button type="button" id="line-close" class="icon-btn">✕</button>
+      </div>
+      <div class="field"><label>Code</label><input type="text" id="line-code" list="code-datalist" placeholder="Search code…" /></div>
+      <div class="row">
+        <div class="field"><label>List $</label><input type="number" id="line-list" step="0.01" /></div>
+        <div class="field"><label>Hours</label><input type="number" id="line-hrs" step="0.25" /></div>
+      </div>
+      <div class="field"><label>Parts Cost $</label><input type="number" id="line-parts" step="0.01" value="0" /></div>
+      <div class="modal-actions">
+        <button id="line-cancel" class="btn secondary">Cancel</button>
+        <button id="line-add" class="btn primary">Add Line</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" hidden></div>
+  <script src="data/codes.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

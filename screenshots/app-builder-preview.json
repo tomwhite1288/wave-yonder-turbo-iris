@@ -1,0 +1,36 @@
+{
+  "url": "http://127.0.0.1:8080/",
+  "viewports": {
+    "desktop": {
+      "width": 1280,
+      "height": 800,
+      "status": 200,
+      "title": "Field Ledger",
+      "hasCanvas": false,
+      "bodyTextLen": 975,
+      "bodyTextHash": "9b90a3b5f7b2ebf4e300b09e333f1bdb51df7db0eee803e76f9bf23e11125614",
+      "bodyTextPrefix": "Field Ledger Maichle's Edge COMPANION INTELLIGENCE LAYER Payroll",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-preview.png"
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "title": "Field Ledger",
+      "hasCanvas": false,
+      "bodyTextLen": 983,
+      "bodyTextHash": "46f2e4fb54d6dc560db40b7aada4ff7848abf89c1c0fb4e3acaae677bb01cbfa",
+      "bodyTextPrefix": "Field Ledger Maichle's Edge Sign in COMPANION INTELLIGENCE LAYER",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-preview-mobile.png"
+    }
+  },
+  "brandWarnings": [],
+  "authWarnings": [],
+  "verdictFile": "/workspace/screenshots/app-builder-preview.json"
+}
