@@ -7,6 +7,8 @@ import { getSessionProfile } from "@/lib/field/api";
 import { claimAdministrator } from "@/lib/field/api-admin";
 import { clearAdminCode, peekAdminCode } from "@/lib/field/admin-login";
 import { AppShell } from "@/components/app-shell";
+import { PendingGate, SignupClosed } from "@/components/pending-gate";
+import { ThemeApplier } from "@/components/theme-applier";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/app")({ component: AppLayout });
@@ -20,6 +22,7 @@ function AppLayout() {
     queryKey: ["profile"],
     queryFn: () => getSessionProfile(),
     enabled: Boolean(user),
+    retry: false,
   });
 
   const claim = useMutation({
@@ -53,19 +56,45 @@ function AppLayout() {
   }
   if (!user) return <RedirectToSignIn />;
 
-  const role = profile.data?.employee.role ?? "technician";
-  const name = profile.data?.employee.name ?? user.displayName ?? "Field user";
+  if (profile.error) {
+    const msg = profile.error.message || "Could not load this account";
+    const closed = /turned off|sign-in is closed|approve your account/i.test(msg);
+    return <SignupClosed title={closed ? "Sign-in is closed" : "Could not open Field Ledger"} message={msg} />;
+  }
+
+  const emp = profile.data?.employee;
+  const settings = profile.data?.settings;
+  const role = emp?.role ?? "technician";
+  const name = emp?.name ?? user.displayName ?? "Field user";
   const isField = pathname.startsWith("/app/field");
+  const unlocking = Boolean(peekAdminCode()) || claim.isPending || claim.isSuccess;
+
+  if (emp && emp.accountStatus !== "active" && role !== "admin") {
+    if (unlocking) {
+      return (
+        <div className="grid min-h-dvh place-items-center bg-bg text-muted">
+          <p className="text-sm">Unlocking administrator access…</p>
+        </div>
+      );
+    }
+    return (
+      <>
+        <ThemeApplier theme={settings?.themeId} layout={settings?.layoutMode} />
+        <PendingGate name={name} />
+      </>
+    );
+  }
 
   return (
-    <AppShell role={role} name={name} tracking={isField}>
-      {profile.isLoading ? (
-        <div className="h-32 animate-pulse rounded-xl bg-surface" />
-      ) : profile.error ? (
-        <p className="text-sm text-danger">{profile.error.message}</p>
-      ) : (
-        <Outlet />
-      )}
-    </AppShell>
+    <>
+      <ThemeApplier theme={settings?.themeId} layout={settings?.layoutMode} />
+      <AppShell role={role} name={name} tracking={isField} settings={settings}>
+        {profile.isLoading ? (
+          <div className="h-32 animate-pulse rounded-xl bg-surface" />
+        ) : (
+          <Outlet />
+        )}
+      </AppShell>
+    </>
   );
 }

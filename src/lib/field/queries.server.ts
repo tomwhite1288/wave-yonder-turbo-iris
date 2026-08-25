@@ -33,6 +33,8 @@ type TicketRow = {
   labor_amount: number | string | null;
   parts_amount: number | string | null;
   status: string;
+  work_detail: string | null;
+  notes: string | null;
 };
 
 type CodeRow = { ticket_id: string; code: string; hours_expected: number | string; labor_value: number | string };
@@ -59,6 +61,8 @@ export function mapTicket(row: TicketRow, codes: CodeRow[], defaultRadius: numbe
     laborAmount: num(row.labor_amount),
     partsAmount: num(row.parts_amount),
     status: row.status,
+    workDetail: row.work_detail,
+    notes: row.notes,
     codes: attached.map((c) => ({
       code: c.code,
       hoursExpected: num(c.hours_expected),
@@ -72,7 +76,8 @@ const TICKET_SELECT = `
   select t.id, t.ticket_number, t.customer_name, t.address_line, t.city, t.state, t.zip,
          t.lat, t.lng, t.gps_radius_ft, t.scheduled_start, t.scheduled_end, t.technician_id,
          trim(coalesce(e.first_name,'') || ' ' || coalesce(e.last_name,'')) as technician_name,
-         t.invoice_number, t.invoice_amount, t.labor_amount, t.parts_amount, t.status
+         t.invoice_number, t.invoice_amount, t.labor_amount, t.parts_amount, t.status,
+         t.work_detail, t.notes
   from tickets t
   left join employees e on e.id = t.technician_id
 `;
@@ -259,6 +264,8 @@ export async function liveBoard(companyId: string, settings: CompanySettings): P
       expectedHours: ticket?.expectedHours ?? 0,
       distanceFt,
       lastGpsAt: last?.recorded_at ?? null,
+      lastLat: last ? num(last.lat) : null,
+      lastLng: last ? num(last.lng) : null,
       openExceptions: exMap.get(employee.id) ?? 0,
       efficiency: hours.billable > 0 ? hours.billable / 60 / available : null,
       clockedIn,

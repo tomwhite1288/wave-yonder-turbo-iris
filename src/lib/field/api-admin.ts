@@ -57,6 +57,8 @@ export const claimAdministrator = createServerFn({ method: "POST" })
     await sql`
       update employees
       set role = 'admin',
+          account_status = 'active',
+          active = true,
           department = case when department = 'Field' then 'Operations' else department end,
           labor_classification = case when labor_classification = 'Technician' then 'Administrator' else labor_classification end,
           updated_at = now(),
@@ -185,4 +187,41 @@ export const getAdminEmails = createServerFn({ method: "GET" })
     const profile = await ready(context.userId);
     assertAdmin(profile);
     return { emails: await listAdminEmails(profile.employee.companyId) };
+  });
+
+export const setAccountStatus = createServerFn({ method: "POST" })
+  .validator((d: { employeeId: string; status: "active" | "pending" | "disabled" }) => d)
+  .middleware([authMiddleware])
+  .handler(async ({ context, data }) => {
+    const profile = await ready(context.userId);
+    assertAdmin(profile);
+    const sql = await getSql();
+    const target = await sql<{ id: string; account_status: string; role: string }>`
+      select id, account_status, role from employees
+      where id = ${data.employeeId} and company_id = ${profile.employee.companyId}
+    `;
+    const row = target[0];
+    if (!row) throw new Error("Employee not found");
+    if (row.id === profile.employee.id && data.status !== "active") {
+      throw new Error("You cannot disable your own administrator account");
+    }
+    await sql`
+      update employees
+      set account_status = ${data.status},
+          active = ${data.status === "active"},
+          updated_at = now(),
+          updated_by = ${context.userId}
+      where id = ${row.id}
+    `;
+    await writeAudit({
+      companyId: profile.employee.companyId,
+      actorId: context.userId,
+      actorName: profile.employee.name,
+      action: data.status === "active" ? "approve_account" : "set_account_status",
+      entityType: "employee",
+      entityId: row.id,
+      originalValue: { accountStatus: row.account_status },
+      newValue: { accountStatus: data.status },
+    });
+    return { ok: true };
   });

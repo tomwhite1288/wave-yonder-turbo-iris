@@ -1,0 +1,48 @@
+book,code,description,category,trade,hours,parts_allowance,list_price,labor_value,active,notes
+invoice,14,Shop / Unapplied Billable Hours,Shop,both,0,0,0.00,0.00,true,
+invoice,CALLBACK,Callback / rework — no charge,Office,both,1,0,0.00,0.00,true,"Bill office, not customer"
+invoice,DIAG,Diagnostic Fee,Office,both,1,0,59.00,59.00,true,
+invoice,EST,Estimate,Office,both,0.5,0,0.00,0.00,true,
+invoice,MANUAL,Manual parts & labor — type $ and hours on log,Manual,both,0,0,0.00,0.00,true,"Type Final $, Hours, Parts Manually"
+invoice,PM10A,Generic Task materials up to $700 / ~1.0 hr,Price/Labor & Material,both,1,700,1369.00,1369.00,true,Mat sell ~$1169
+invoice,PM10B,Generic Task materials up to $700 / ~1.5 hr,Price/Labor & Material,both,1.5,700,1469.00,1469.00,true,Mat sell ~$1169
+invoice,PM10C,Generic Task materials up to $700 / ~2.0 hr,Price/Labor & Material,both,2,700,1569.00,1569.00,true,Mat sell ~$1169
+invoice,PM11A,Generic Task materials up to $800 / ~1.0 hr,Price/Labor & Material,both,1,800,1536.00,1536.00,true,Mat sell ~$1336
+invoice,PM11B,Generic Task materials up to $800 / ~1.5 hr,Price/Labor & Material,both,1.5,800,1636.00,1636.00,true,Mat sell ~$1336
+invoice,PM11C,Generic Task materials up to $800 / ~2.0 hr,Price/Labor & Material,both,2,800,1736.00,1736.00,true,Mat sell ~$1336
+invoice,PM12A,Generic Task materials up to $900 / ~1.0 hr,Price/Labor & Material,both,1,900,1703.00,1703.00,true,Mat sell ~$1503
+invoice,PM12B,Generic Task materials up to $900 / ~1.5 hr,Price/Labor & Material,both,1.5,900,1803.00,1803.00,true,Mat sell ~$1503
+invoice,PM12C,Generic Task materials up to $900 / ~2.0 hr,Price/Labor & Material,both,2,900,1903.00,1903.00,true,Mat sell ~$1503
+invoice,PM13A,Generic Task materials up to $1000 / ~1.0 hr,Price/Labor & Material,both,1,1,1870.00,1870.00,true,Mat sell ~$1670
+invoice,PM13B,Generic Task materials up to $1000 / ~1.5 hr,Price/Labor & Material,both,1.5,1,1970.00,1970.00,true,Mat sell ~$1670
+invoice,PM13C,Generic Task materials up to $1000 / ~2.0 hr,Price/Labor & Material,both,2,1,2070.00,2070.00,true,Mat sell ~$1670
+invoice,PM1A,PM tier1 / ~1 hr,Price/Labor & Material,both,1,25,242.00,242.00,true,
+invoice,PM1B,PM tier1 / ~1.5 hr,Price/Labor & Material,both,1.5,25,342.00,342.00,true,
+invoice,PM1C,PM tier1 / ~2 hr,Price/Labor & Material,both,2,25,442.00,442.00,true,
+invoice,PM2A,PM tier2 / ~1 hr,Price/Labor & Material,both,1,50,284.00,284.00,true,
+invoice,PM2B,PM tier2 / ~1.5 hr,Price/Labor & Material,both,1.5,50,384.00,384.00,true,
+invoice,PM2C,PM tier2 / ~2 hr,Price/Labor & Material,both,2,50,484.00,484.00,true,
+invoice,PM3A,Generic Task materials up to $75 / ~1.0 hr,Price/Labor & Material,both,1,75,325.00,325.00,true,Mat sell ~$125
+invoice,PM3B,Generic Task materials up to $75 / ~1.5 hr,Price/Labor & Material,both,1.5,75,425.00,425.00,true,
+invoice,PM3C,Generic Task materials up to $75 / ~2.0 hr,Price/Labor & Material,both,2,75,525.00,525.00,true,Mat sell ~$125
+invoice,PM4A,PM tier4 / ~1 hr,Price/Labor & Material,both,1,100,367.00,367.00,true,
+invoice,PM4B,PM tier4 / ~1.5 hr,Price/Labor & Material,both,1.5,100,467.00,467.00,true,
+invoice,PM4C,PM tier4 / ~2 hr,Price/Labor & Material,both,2,100,567.00,567.00,true,
+invoice,PM5A,PM tier5 / ~1 hr,Price/Labor & Material,both,1,200,534.00,534.00,true,
+invoice,PM5B,Generic Task materials up to $200 / ~1.5 hr,Price/Labor & Material,both,1.5,200,634.00,634.00,true,Mat sell ~$334
+invoice,PM5C,Generic Task materials up to $200 / ~2.0 hr,Price/Labor & Material,both,2,200,734.00,734.00,true,Mat sell ~$334
+invoice,PM6A,PM tier6 / ~1 hr,Price/Labor & Material,both,1,300,700.00,700.00,true,
+invoice,PM6B,Generic Task materials up to $300 / ~1.5 hr,Price/Labor & Material,both,1.5,300,800.00,800.00,true,Mat sell ~$500
+invoice,PM6C,Generic Task materials up to $300 / ~2.0 hr,Price/Labor & Material,both,2,300,900.00,900.00,true,Mat sell ~$500
+invoice,PM7A,Generic Task materials up to $400 / ~1.0 hr,Price/Labor & Material,both,1,400,868.00,868.00,true,Mat sell ~$668
+invoice,PM7B,Generic Task materials up to $400 / ~1.5 hr,Price/Labor & Material,both,1.5,400,968.00,968.00,true,Mat sell ~$668
+invoice,PM7C,Generic Task materials up to $400 / ~2.0 hr,Price/Labor & Material,both,2,400,1068.00,1068.00,true,Mat sell ~$668
+invoice,PM8A,Generic Task materials up to $500 / ~1.0 hr,Price/Labor & Material,both,1,500,1035.00,1035.00,true,Mat sell ~$835
+invoice,PM8B,Generic Task materials up to $500 / ~1.5 hr,Price/Labor & Material,both,1.5,500,1135.00,1135.00,true,Mat sell ~$835
+invoice,PM8C,Generic Task materials up to $500 / ~2.0 hr,Price/Labor & Material,both,2,500,1235.00,1235.00,true,Mat sell ~$835
+invoice,PM9A,Generic Task materials up to $600 / ~1.0 hr,Price/Labor & Material,both,1,600,1202.00,1202.00,true,Mat sell ~$1002
+invoice,PM9B,Generic Task materials up to $600 / ~1.5 hr,Price/Labor & Material,both,1.5,600,1302.00,1302.00,true,Mat sell ~$1002
+invoice,PM9C,Generic Task materials up to $600 / ~2.0 hr,Price/Labor & Material,both,2,600,1402.00,1402.00,true,Mat sell ~$1002
+invoice,SRV-CH,Service Charge,Office,both,1,0,120.00,120.00,true,Rate Price For Coming Out (no contract)
+invoice,TRUCK-ORG,Truck organize / clean / stock,Office,both,0.5,0,0.00,0.00,true,Unapplied Billable Hour
+invoice,WARRANTY,Warranty (No Charge),Office,both,2,0,0.00,0.00,true,Repair Is Covered Under Warranty

@@ -1,0 +1,13 @@
+book,code,description,category,trade,hours,parts_allowance,list_price,labor_value,active,notes
+hvac,HVAC-BLOWER,Blower motor replace (standard),HVAC,hvac,2,220,890.00,890.00,true,
+hvac,HVAC-CAP,Replace run capacitor,HVAC,hvac,0.75,28,285.00,285.00,true,
+hvac,HVAC-CHG,Recover / recharge refrigerant (up to 2 lb),HVAC,hvac,1.5,80,420.00,420.00,true,Additional lb billed extra
+hvac,HVAC-COIL,Clean evaporator coil,HVAC,hvac,1.5,20,385.00,385.00,true,
+hvac,HVAC-COND,Condensate drain clear / treat,HVAC,hvac,0.5,8,165.00,165.00,true,
+hvac,HVAC-DIAG,HVAC diagnostic / no-cool no-heat,HVAC,hvac,1,0,189.00,189.00,true,Service call + diagnosis
+hvac,HVAC-FILTER,"Replace 1"" filter (aftermarket)",HVAC,hvac,0.25,12,48.00,48.00,true,
+hvac,HVAC-IGN,Furnace ignitor replace,HVAC,hvac,0.75,42,310.00,310.00,true,
+hvac,HVAC-INDUCER,Inducer motor replace,HVAC,hvac,1.75,180,740.00,740.00,true,
+hvac,HVAC-INSTALL,System install labor (per hour),HVAC,hvac,1,0,200.00,200.00,true,Use with equipment quote
+hvac,HVAC-TSTAT,Replace thermostat (standard),HVAC,hvac,0.75,65,320.00,320.00,true,
+hvac,HVAC-TUNE,Seasonal tune-up (AC or furnace),HVAC,hvac,1.25,25,249.00,249.00,true,

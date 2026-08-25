@@ -18,58 +18,60 @@ import {
   CalendarDays,
   Menu,
   X,
+  type LucideIcon,
 } from "lucide-react";
 import { useMemo, useState, type ReactNode } from "react";
 import { UserButton } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
-import type { Role } from "@/lib/field/types";
+import type { CompanySettings, Role } from "@/lib/field/types";
+import { dockForRole, navForRole, type NavId } from "@/lib/field/nav";
 import { cn } from "@/lib/utils";
 import { Button } from "./ui/button";
 
-const NAV = [
-  { to: "/app", label: "Board", icon: Radio, roles: ["admin", "manager"] as Role[] },
-  { to: "/app/field", label: "Today", icon: MapPin, roles: ["admin", "manager", "technician"] as Role[] },
-  { to: "/app/jobs", label: "Jobs", icon: ClipboardList, roles: ["admin", "manager", "technician"] as Role[] },
-  { to: "/app/timecards", label: "Timecards", icon: LayoutGrid, roles: ["admin", "manager", "technician"] as Role[] },
-  { to: "/app/exceptions", label: "Exceptions", icon: ShieldAlert, roles: ["admin", "manager", "technician"] as Role[] },
-  { to: "/app/payroll", label: "Payroll", icon: Wallet, roles: ["admin", "manager"] as Role[] },
-  { to: "/app/efficiency", label: "Efficiency", icon: Gauge, roles: ["admin", "manager"] as Role[] },
-  { to: "/app/codes", label: "Code book", icon: BookOpen, roles: ["admin", "manager", "technician"] as Role[] },
-  { to: "/app/parts", label: "Parts", icon: Package, roles: ["admin", "manager", "technician"] as Role[] },
-  { to: "/app/truck", label: "Truck stock", icon: Truck, roles: ["admin", "manager", "technician"] as Role[] },
-  { to: "/app/people", label: "People", icon: Users, roles: ["admin", "manager"] as Role[] },
-  { to: "/app/schedules", label: "Schedules", icon: CalendarDays, roles: ["admin", "manager", "technician"] as Role[] },
-  { to: "/app/reports", label: "Reports", icon: Activity, roles: ["admin", "manager"] as Role[] },
-  { to: "/app/audit", label: "Audit", icon: ScrollText, roles: ["admin", "manager"] as Role[] },
-  { to: "/app/settings", label: "Settings", icon: Settings, roles: ["admin"] as Role[] },
-];
-
-const MOBILE_TECH = [
-  { to: "/app/field", label: "Today", icon: MapPin },
-  { to: "/app/jobs", label: "Jobs", icon: ClipboardList },
-  { to: "/app/timecards", label: "Hours", icon: LayoutGrid },
-  { to: "/app/parts", label: "Parts", icon: Package },
-];
+const ICONS: Record<NavId, LucideIcon> = {
+  board: Radio,
+  field: MapPin,
+  jobs: ClipboardList,
+  timecards: LayoutGrid,
+  exceptions: ShieldAlert,
+  payroll: Wallet,
+  efficiency: Gauge,
+  codes: BookOpen,
+  parts: Package,
+  truck: Truck,
+  people: Users,
+  schedules: CalendarDays,
+  reports: Activity,
+  audit: ScrollText,
+  settings: Settings,
+};
 
 export function AppShell({
   children,
   role,
   name,
   tracking,
+  settings,
 }: {
   children: ReactNode;
   role: Role;
   name: string;
   tracking?: boolean;
+  settings?: CompanySettings;
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [open, setOpen] = useState(false);
-  const items = useMemo(() => NAV.filter((n) => n.roles.includes(role)), [role]);
+  const items = useMemo(() => navForRole(role, settings?.roleNav), [role, settings?.roleNav]);
+  const dock = useMemo(() => dockForRole(role, settings?.mobileDock, settings?.roleNav), [role, settings]);
   const { isPending } = useCurrentUserState();
+  const layout = settings?.layoutMode ?? "auto";
+  const forceDesktop = layout === "desktop";
+  const forceMobile = layout === "mobile";
+  const showDock = forceMobile || (!forceDesktop && (role === "technician" || true));
 
   return (
-    <div className="min-h-dvh bg-bg text-fg">
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-border bg-surface md:flex">
+    <div className={cn("min-h-dvh bg-bg text-fg", forceDesktop && "layout-desktop", forceMobile && "layout-mobile")}>
+      <aside className={cn("fixed inset-y-0 left-0 z-30 w-60 flex-col border-r border-border bg-surface", forceMobile ? "hidden" : "hidden md:flex", forceDesktop && "!flex")}>
         <div className="flex h-16 items-center gap-2 px-5">
           <span className="grid size-8 place-items-center rounded-md bg-elevated text-primary shadow-[var(--shadow-border)]">
             <Radio className="size-4" />
@@ -82,7 +84,7 @@ export function AppShell({
         <nav className="flex-1 overflow-y-auto px-3 pb-4">
           {items.map((item) => {
             const active = pathname === item.to || (item.to !== "/app" && pathname.startsWith(item.to));
-            const Icon = item.icon;
+            const Icon = ICONS[item.id];
             return (
               <Link
                 key={item.to}
@@ -122,7 +124,7 @@ export function AppShell({
         </div>
       </aside>
 
-      <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-border bg-bg/90 px-3 backdrop-blur md:hidden">
+      <header className={cn("sticky top-0 z-20 flex h-14 items-center justify-between border-b border-border bg-bg/90 px-3 backdrop-blur", forceDesktop ? "hidden" : "md:hidden")}>
         <button type="button" className="grid size-11 place-items-center" onClick={() => setOpen(true)} aria-label="Open menu">
           <Menu className="size-5" />
         </button>
@@ -131,7 +133,7 @@ export function AppShell({
       </header>
 
       {open ? (
-        <div className="fixed inset-0 z-40 md:hidden">
+        <div className="fixed inset-0 z-40">
           <button type="button" className="absolute inset-0 bg-bg/70" onClick={() => setOpen(false)} aria-label="Close menu" />
           <div className="absolute inset-y-0 left-0 w-72 bg-surface p-4 shadow-[var(--shadow-border)]">
             <div className="mb-4 flex items-center justify-between">
@@ -141,7 +143,7 @@ export function AppShell({
               </Button>
             </div>
             {items.map((item) => {
-              const Icon = item.icon;
+              const Icon = ICONS[item.id];
               return (
                 <Link
                   key={item.to}
@@ -172,19 +174,19 @@ export function AppShell({
         </div>
       ) : null}
 
-      <div className="md:pl-60">
-        <div className="hidden h-14 items-center justify-between border-b border-border px-6 md:flex">
-          <div className="text-sm text-muted">Companion payroll & accountability</div>
+      <div className={cn(forceMobile ? "pl-0" : "md:pl-60", forceDesktop && "!pl-60")}>
+        <div className={cn("h-14 items-center justify-between border-b border-border px-6", forceMobile ? "hidden" : "hidden md:flex", forceDesktop && "!flex")}>
+          <div className="text-sm text-muted">Companion payroll, dispatch & accountability</div>
           {isPending ? <div className="h-8 w-32 animate-pulse rounded-md bg-elevated" /> : <UserButton />}
         </div>
-        <main className={cn("px-4 py-5 md:px-6", role === "technician" ? "pb-24" : "pb-10")}>{children}</main>
+        <main className={cn("px-4 py-5 md:px-6", showDock && !forceDesktop ? "pb-24 md:pb-10" : "pb-10", forceMobile && "pb-24")}>{children}</main>
       </div>
 
-      {role === "technician" ? (
-        <nav className="fixed inset-x-0 bottom-0 z-20 flex border-t border-border bg-surface pb-[env(safe-area-inset-bottom)] md:hidden">
-          {MOBILE_TECH.map((item) => {
-            const Icon = item.icon;
-            const active = pathname === item.to || pathname.startsWith(item.to);
+      {showDock && !forceDesktop ? (
+        <nav className={cn("fixed inset-x-0 bottom-0 z-20 border-t border-border bg-surface pb-[env(safe-area-inset-bottom)]", forceMobile ? "flex" : "flex md:hidden")}>
+          {dock.map((item) => {
+            const Icon = ICONS[item.id];
+            const active = pathname === item.to || (item.to !== "/app" && pathname.startsWith(item.to));
             return (
               <Link
                 key={item.to}
@@ -195,7 +197,7 @@ export function AppShell({
                 )}
               >
                 <Icon className="size-5" />
-                {item.label}
+                {item.dockLabel}
               </Link>
             );
           })}

@@ -170,6 +170,26 @@ var CalendarDays = createLucideIcon("calendar-days", [
 * This source code is licensed under the ISC license.
 * See the LICENSE file in the root directory of this source tree.
 */
+var ChevronLeft = createLucideIcon("chevron-left", [["path", {
+	d: "m15 18-6-6 6-6",
+	key: "1wnfg3"
+}]]);
+/**
+* @license lucide-react v0.510.0 - ISC
+*
+* This source code is licensed under the ISC license.
+* See the LICENSE file in the root directory of this source tree.
+*/
+var ChevronRight = createLucideIcon("chevron-right", [["path", {
+	d: "m9 18 6-6-6-6",
+	key: "mthhwq"
+}]]);
+/**
+* @license lucide-react v0.510.0 - ISC
+*
+* This source code is licensed under the ISC license.
+* See the LICENSE file in the root directory of this source tree.
+*/
 var ClipboardList = createLucideIcon("clipboard-list", [
 	["rect", {
 		width: "8",
@@ -363,6 +383,19 @@ var Package = createLucideIcon("package", [
 		key: "1c824w"
 	}]
 ]);
+/**
+* @license lucide-react v0.510.0 - ISC
+*
+* This source code is licensed under the ISC license.
+* See the LICENSE file in the root directory of this source tree.
+*/
+var Plus = createLucideIcon("plus", [["path", {
+	d: "M5 12h14",
+	key: "1ays0h"
+}], ["path", {
+	d: "M12 5v14",
+	key: "s699le"
+}]]);
 /**
 * @license lucide-react v0.510.0 - ISC
 *
@@ -598,4 +631,4 @@ var X = createLucideIcon("x", [["path", {
 	key: "d8bk6v"
 }]]);
 //#endregion
-export { Activity as C, ArrowRight as S, HardHat as _, TriangleAlert as a, CalendarDays as b, ShieldAlert as c, Radio as d, Package as f, LayoutGrid as g, MapPin as h, Truck as i, Settings as l, MapPinned as m, Wallet as n, Timer as o, Menu as p, Users as r, ShieldCheck as s, X as t, ScrollText as u, Gauge as v, BookOpen as x, ClipboardList as y };
+export { CalendarDays as C, Activity as E, ChevronLeft as S, ArrowRight as T, LayoutGrid as _, TriangleAlert as a, ClipboardList as b, ShieldAlert as c, Radio as d, Plus as f, MapPin as g, MapPinned as h, Truck as i, Settings as l, Menu as m, Wallet as n, Timer as o, Package as p, Users as r, ShieldCheck as s, X as t, ScrollText as u, HardHat as v, BookOpen as w, ChevronRight as x, Gauge as y };

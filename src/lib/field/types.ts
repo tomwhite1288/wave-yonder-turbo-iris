@@ -1,4 +1,24 @@
 export type Role = "admin" | "manager" | "technician";
+export type AccountStatus = "active" | "pending" | "disabled";
+export type CodeBookKind = "invoice" | "plumbing" | "hvac";
+export type ThemeId = "stock" | "field" | "night" | "light";
+export type LayoutMode = "auto" | "desktop" | "mobile";
+export type NavId =
+  | "board"
+  | "field"
+  | "jobs"
+  | "timecards"
+  | "exceptions"
+  | "payroll"
+  | "efficiency"
+  | "codes"
+  | "parts"
+  | "truck"
+  | "people"
+  | "schedules"
+  | "reports"
+  | "audit"
+  | "settings";
 
 export type GpsStatus =
   | "OFF_SITE"
@@ -39,6 +59,7 @@ export type Employee = {
   phone: string | null;
   vehicle: string | null;
   active: boolean;
+  accountStatus: AccountStatus;
   hourlyWage: number;
 };
 
@@ -65,6 +86,14 @@ export type CompanySettings = {
   companyId: string;
   adminEmails: string[];
   adminHintVisible: boolean;
+  themeId: ThemeId;
+  layoutMode: LayoutMode;
+  dispatchShowMap: boolean;
+  dispatchShowTiles: boolean;
+  signupOpen: boolean;
+  signupRequiresApproval: boolean;
+  mobileDock: NavId[];
+  roleNav: Partial<Record<Role, NavId[]>>;
 };
 
 export type SessionProfile = {
@@ -95,6 +124,8 @@ export type TicketSummary = {
   laborAmount: number;
   partsAmount: number;
   status: string;
+  workDetail: string | null;
+  notes: string | null;
   codes: { code: string; hoursExpected: number; laborValue: number }[];
   expectedHours: number;
 };
@@ -110,6 +141,8 @@ export type LiveTechRow = {
   expectedHours: number;
   distanceFt: number | null;
   lastGpsAt: string | null;
+  lastLat: number | null;
+  lastLng: number | null;
   openExceptions: number;
   efficiency: number | null;
   clockedIn: boolean;
@@ -154,11 +187,29 @@ export type CodeBookEntry = {
   description: string;
   category: string;
   trade: string;
+  book: CodeBookKind;
   hours: number;
+  partsAllowance: number;
   laborValue: number;
   typicalDurationMin: number;
   active: boolean;
   notes: string | null;
+};
+
+export type CodeImportRow = {
+  book?: string;
+  code: string;
+  description?: string;
+  category?: string;
+  trade?: string;
+  hours?: number | string;
+  parts_allowance?: number | string;
+  partsAllowance?: number | string;
+  list_price?: number | string;
+  labor_value?: number | string;
+  laborValue?: number | string;
+  active?: boolean | string;
+  notes?: string;
 };
 
 export type PartView = {

@@ -46,11 +46,11 @@ function Home() {
       <section className="mx-auto max-w-5xl px-5 pb-16 pt-8 stagger-in">
         <p className="text-xs font-medium uppercase tracking-[0.18em] text-primary">Companion intelligence layer</p>
         <h1 className="mt-3 max-w-3xl text-4xl font-semibold leading-tight tracking-tight md:text-5xl">
-          Payroll, timecards, and job-site truth — without replacing dispatch.
+          Dispatch, payroll, and job-site truth — beside the service platform, not instead of it.
         </h1>
         <p className="mt-4 max-w-2xl text-base text-muted">
-          Field Ledger sits beside the Maichle's Edge service platform. Tickets still live there. This system answers
-          where the technician was, how long they worked, whether invoice codes match the hours, and what payroll should be.
+          Field Ledger is the Maichle's Edge companion for the office desk and the truck. Tickets still key off Ticket
+          Number. This system runs the dispatch board, GPS attendance, invoice vs plumbing vs HVAC codes, and payroll.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
           <Button asChild>
@@ -72,7 +72,7 @@ function Home() {
             { icon: BookOpen, title: "Code validation", body: "A+C+B hours vs actual field time, with configurable ±15 minute tolerance." },
             { icon: Wallet, title: "Payroll estimates", body: "Historical wage rates, overtime, contribution after labor — not a paycheck processor." },
             { icon: ShieldCheck, title: "Exceptions & audit", body: "Under-billed, over-billed, left site, missing codes. Every edit keeps the original." },
-            { icon: Radio, title: "Live board", body: "Managers see the fleet. Technicians get a mobile day view. Integration API in between." },
+            { icon: Radio, title: "Dispatch board", body: "Shift / day / week timeline, drag-assign work orders, live GPS map. Companion desk — not a clone of invoicing." },
           ].map((item) => {
             const Icon = item.icon;
             return (

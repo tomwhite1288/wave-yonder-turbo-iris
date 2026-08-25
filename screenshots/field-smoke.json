@@ -1,0 +1,45 @@
+{
+  "email": "pat.admin.1787673417704@maichlesedge.com",
+  "steps": [
+    {
+      "name": "dispatch-after-login",
+      "url": "http://127.0.0.1:8080/app?admin=1",
+      "text": "Dispatch Board\nShift\nFull Day\nWeek\n\n2026-08-25\n\nToday\nCreate Work Order\nTECHNICIANS\n7A\n8A\n9A\n10A\n11A\n12P\n1P\n2P\n3P\n4P\nMH\n\nMarcus Hale\n\nHVAC · OFFLINE · No GPS\n\nER\n\nElena Ruiz\n\nPlumbing · OFFLINE · No GPS\n\nJS\n\nJohn Smith\n\nPlumbing · OFFLINE · No GPS\n\nDW\n\nDerrick Walsh\n\nHVAC · OFFLINE · No GPS\n\nWork Orders\n\nUnassigned\nAssigned\nCompleted\nID\tCUSTOMER\tADDRESS\tWHEN\tTASK\nNothing in this list. Create a work order or import tickets.\n\nLive map\n\nNO GPS PINS YET\n\nWilmington\nNew Castle\nNewark\nBear\nElkton\n\nPins appear when a technician shares location from Today.\n\nToday\nJobs\nHours\nCodes\nParts"
+    },
+    {
+      "name": "dispatch-created",
+      "url": "http://127.0.0.1:8080/app?admin=1",
+      "text": "Dispatch Board\nShift\nFull Day\nWeek\n\n2026-08-25\n\nToday\nCreate Work Order\nTECHNICIANS\n7A\n8A\n9A\n10A\n11A\n12P\n1P\n2P\n3P\n4P\nMH\n\nMarcus Hale\n\nHVAC · OFFLINE · No GPS\n\nER\n\nElena Ruiz\n\nPlumbing · OFFLINE · No GPS\n\nJS\n\nJohn Smith\n\nPlumbing · OFFLINE · No GPS\n\n#700001 Harbor View HOA\nDW\n\nDerrick Walsh\n\nHVAC · OFFLINE · No GPS\n\nWork Orders\n\nUnassigned\nAssigned\nCompleted\nID\tCUSTOMER\tADDRESS\tWHEN\tTASK\nNothing in this list. Create a work order or import tickets.\n\nLive map\n\nNO GPS PINS YET\n\nWilmington\nNew Castle\nNewark\nBear\nElkton\n\nPins appear when a technician shares location from Today.\n\nToday\nJobs\nHours\nCodes\nParts\nWork order #700001"
+    },
+    {
+      "name": "codes-empty",
+      "url": "http://127.0.0.1:8080/app/codes",
+      "text": "Code book\n\nInvoice codes stay separate from plumbing and HVAC job codes. Import CSV yourself for beta — nothing is auto-loaded.\n\nLookup\n\nSearch by description, or enter hours + parts allowance to find matching and in-range codes.\n\nClear\nAll\nInvoice\nPlumbing\nHVAC\n0 shown · 0 in book\nAdd / import\nInvoice\nPlumbing\nHVAC\nAdd\nCSV IMPORT (ONE OR MANY FILES)\nColumns: book, code, description, category, trade, hours, parts_allowance, list_price, labor_value, active, notes\n\nSample packs (not loaded): all books · invoice · plumbing · HVAC\n\nCode book is empty on purpose. Import the beta CSV when you are ready.\n\nToday\nJobs\nHours\nCodes\nParts"
+    },
+    {
+      "name": "settings",
+      "url": "http://127.0.0.1:8080/app/settings",
+      "text": "System configuration\n\nChange company rules here — not in source code.\n\nAdministrator access\n\nThe Administrator button on sign-in requires this code. After a successful unlock, that Google or email login is promoted to admin. Bind your Gmail below so it stays admin on the next sign-in.\n\nCURRENT CODE\nNEW CODE\nChange admin code\nAUTO-ADMIN EMAILS\nOne email per line. Those logins become administrator automatically.\nSave admin emails\nJOB-SITE GPS RADIUS (FT)\nEXCEPTION TOLERANCE (MIN)\nDAILY OVERTIME AFTER (HOURS)\nDEFAULT LABOR RATE\nSave rules\nTheme\n\nStock is the current industrial look. Field Blue matches the main Maichle’s Edge desk.\n\nStock\nCurrent industrial dark\nField Blue\nMaichle’s Edge office "
+    },
+    {
+      "name": "settings-theme",
+      "url": "http://127.0.0.1:8080/app/settings",
+      "text": "System configuration\n\nChange company rules here — not in source code.\n\nAdministrator access\n\nThe Administrator button on sign-in requires this code. After a successful unlock, that Google or email login is promoted to admin. Bind your Gmail below so it stays admin on the next sign-in.\n\nCURRENT CODE\nNEW CODE\nChange admin code\nAUTO-ADMIN EMAILS\nOne email per line. Those logins become administrator automatically.\nSave admin emails\nJOB-SITE GPS RADIUS (FT)\nEXCEPTION TOLERANCE (MIN)\nDAILY OVERTIME AFTER (HOURS)\nDEFAULT LABOR RATE\nSave rules\nTheme\n\nStock is the current industrial look. Field Blue matches the main Maichle’s Edge desk.\n\nStock\nCurrent industrial dark\nField Blue\nMaichle’s Edge office "
+    },
+    {
+      "name": "people",
+      "url": "http://127.0.0.1:8080/app/people",
+      "text": "People\n\nApprove new logins, set roles, and keep wage history by effective date.\n\nPat Admin\nE-465 · pat.admin.1787673417704@maichlesedge.com\nADMIN\nDEPARTMENT\nOperations\nWAGE\n$30.00/hr\nVEHICLE\n—\nLINKED LOGIN\nYes\nROLE\nAdministrator\nManager\nTechnician\nPat Maichle\nE-100 · pat@maichlesedge.com\nADMIN\nDEPARTMENT\nOperations\nWAGE\n$55.00/hr\nVEHICLE\nOffice\nLINKED LOGIN\nPending\nROLE\nAdministrator\nManager\nTechnician\nTom W W\nE-813 · twrotorooter@gmail.com\nADMIN\nDEPARTMENT\nOperations\nWAGE\n$30.00/hr\nVEHICLE\n—\nLINKED LOGIN\nYes\nROLE\nAdministrator\nManager\nTechnician\nSarah Chen\nE-110 · sarah.chen@maichlesedge.com\nMANAGER\nDEPARTMENT\nField Supervision\nWAGE\n$42.00/hr\nVEHICLE\nSUV-1\nLINKED LOGIN\nPending\nDisable sign-"
+    }
+  ],
+  "errors": [],
+  "dispatchOk": true,
+  "hasTechs": true,
+  "createdTicket": true,
+  "codeBookEmptyHint": true,
+  "hydratedCodesRemain": false,
+  "sampleLinks": true,
+  "settingsOk": true,
+  "peopleOk": true,
+  "mobileText": "Field Ledger\nDispatch Board\nShift\nFull Day\nWeek\n\n2026-08-25\n\nToday\nCreate Work Order\nTECHNICIANS\n7A\n8A\n9A\n10A\n11A\n12P\n1P\n2P\n3P\n4P\nMH\n\nMarcus Hale\n\nHVAC · OFFLINE · No GPS\n\nER\n\nElena Ruiz\n\nPlumbing · OFFLINE · No GPS\n\nJS\n\nJohn Smith\n\nPlumbing · OFFLINE · No GPS\n\n#700001 Harbor View HOA\nDW\n\nDerrick Walsh\n\nHVAC · OFFLINE · No GPS\n\nWork Orders\n\nUnassigned\nAssigned\nCompleted\nID\tCUSTOMER\tWHEN\nNothing in"
+}

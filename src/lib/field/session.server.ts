@@ -1,7 +1,8 @@
 import { getSql } from "@/lib/db";
 import { num, newId } from "@/lib/utils";
-import type { CompanySettings, Employee, Role, SessionProfile } from "./types";
+import type { AccountStatus, CompanySettings, Employee, Role, SessionProfile } from "./types";
 import { isListedAdminEmail, parseAdminEmails } from "./admin-auth.server";
+import { DEFAULT_DOCK, parseLayout, parseNavList, parseRoleNav, parseTheme } from "./nav";
 
 type EmpRow = {
   id: string;
@@ -18,6 +19,7 @@ type EmpRow = {
   phone: string | null;
   vehicle: string | null;
   active: boolean;
+  account_status?: AccountStatus | null;
   hourly_wage: number | string | null;
 };
 
@@ -38,6 +40,7 @@ export function mapEmployee(row: EmpRow): Employee {
     phone: row.phone,
     vehicle: row.vehicle,
     active: row.active,
+    accountStatus: row.account_status === "pending" || row.account_status === "disabled" ? row.account_status : "active",
     hourlyWage: num(row.hourly_wage),
   };
 }
@@ -65,6 +68,7 @@ export async function loadSettings(companyId: string): Promise<CompanySettings> 
   `;
   const c = company[0];
   const n = (k: string, d: number) => num(map[k] ?? d);
+  const flag = (k: string, d = true) => (map[k] ?? String(d)) !== "false";
   return {
     gpsRadiusFt: n("gps_radius_ft", 250),
     gpsIntervalSec: n("gps_interval_sec", 30),
@@ -88,6 +92,14 @@ export async function loadSettings(companyId: string): Promise<CompanySettings> 
     companyId,
     adminEmails: parseAdminEmails(map.admin_emails),
     adminHintVisible: (map.admin_code_hint ?? "true") !== "false",
+    themeId: parseTheme(map.theme_id),
+    layoutMode: parseLayout(map.layout_mode),
+    dispatchShowMap: flag("dispatch_show_map"),
+    dispatchShowTiles: (map.dispatch_show_tiles ?? "false") === "true",
+    signupOpen: flag("signup_open"),
+    signupRequiresApproval: flag("signup_requires_approval"),
+    mobileDock: parseNavList(map.mobile_dock, DEFAULT_DOCK),
+    roleNav: parseRoleNav(map.role_nav),
   };
 }
 
@@ -110,58 +122,43 @@ export async function bootstrapProfile(opts: {
     );
     if (byEmail[0]) {
       await sql`
-        update employees set user_id = ${opts.userId}, updated_at = now()
+        update employees
+        set user_id = ${opts.userId},
+            account_status = 'active',
+            active = true,
+            updated_at = now()
         where id = ${byEmail[0].id}
       `;
-      return finishProfile({ ...byEmail[0], user_id: opts.userId }, opts);
+      return finishProfile({ ...byEmail[0], user_id: opts.userId, account_status: "active", active: true }, opts);
     }
-  }
-
-  const unlinkedAdmin = await sql.query<EmpRow>(
-    `${EMP_SELECT} where e.role = 'admin' and e.user_id is null order by e.created_at asc limit 1`,
-  );
-  if (unlinkedAdmin[0]) {
-    const nextEmail = opts.email || unlinkedAdmin[0].email;
-    const names = (opts.name ?? "").trim().split(/\s+/);
-    const first = names[0] || unlinkedAdmin[0].first_name;
-    const last = names.slice(1).join(" ") || unlinkedAdmin[0].last_name;
-    await sql`
-      update employees
-      set user_id = ${opts.userId},
-          email = ${nextEmail},
-          first_name = ${first},
-          last_name = ${last},
-          updated_at = now()
-      where id = ${unlinkedAdmin[0].id}
-    `;
-    return finishProfile(
-      {
-        ...unlinkedAdmin[0],
-        user_id: opts.userId,
-        email: nextEmail,
-        first_name: first,
-        last_name: last,
-      },
-      opts,
-    );
   }
 
   const company = await sql<{ id: string }>`select id from companies order by created_at asc limit 1`;
   const companyId = company[0]?.id ?? "co_maichles";
+  const settings = await loadSettings(companyId);
+  const listed = await isListedAdminEmail(companyId, opts.email);
+
+  if (!listed && !settings.signupOpen) {
+    throw Object.assign(new Error("New sign-in is turned off. Ask an administrator to approve your account."), {
+      status: 403,
+    });
+  }
+
   const names = (opts.name ?? "New Technician").trim().split(/\s+/);
   const id = newId("emp");
   const number = `E-${Math.floor(300 + Math.random() * 600)}`;
-  const listed = await isListedAdminEmail(companyId, opts.email);
   const role: Role = listed ? "admin" : "technician";
+  const pending = !listed && settings.signupRequiresApproval;
   await sql`
     insert into employees (
       id, company_id, user_id, employee_number, first_name, last_name, email, role,
-      department, labor_classification, pay_type, active
+      department, labor_classification, pay_type, active, account_status
     ) values (
       ${id}, ${companyId}, ${opts.userId}, ${number},
       ${names[0] || "New"}, ${names.slice(1).join(" ") || (listed ? "Administrator" : "Technician")},
       ${opts.email || `${id}@maichlesedge.com`}, ${role},
-      ${listed ? "Operations" : "Field"}, ${listed ? "Administrator" : "Technician"}, 'hourly', true
+      ${listed ? "Operations" : "Field"}, ${listed ? "Administrator" : "Technician"}, 'hourly',
+      ${!pending}, ${pending ? "pending" : "active"}
     )
   `;
   await sql`
@@ -182,16 +179,18 @@ async function finishProfile(row: EmpRow, opts: { userId: string; email: string 
   const sql = await getSql();
   let emp = mapEmployee(row);
   const listed = await isListedAdminEmail(emp.companyId, opts.email || emp.email);
-  if (listed && emp.role !== "admin") {
+  if (listed && (emp.role !== "admin" || emp.accountStatus !== "active")) {
     await sql`
       update employees
       set role = 'admin',
+          account_status = 'active',
+          active = true,
           department = case when department = 'Field' then 'Operations' else department end,
           labor_classification = case when labor_classification = 'Technician' then 'Administrator' else labor_classification end,
           updated_at = now()
       where id = ${emp.id}
     `;
-    emp = { ...emp, role: "admin" };
+    emp = { ...emp, role: "admin", accountStatus: "active", active: true };
   }
   return {
     userId: opts.userId,
@@ -222,11 +221,23 @@ export function assertManager(profile: SessionProfile) {
   if (profile.employee.role === "technician") {
     throw Object.assign(new Error("Manager access required"), { status: 403 });
   }
+  if (profile.employee.accountStatus !== "active") {
+    throw Object.assign(new Error("Account is waiting for administrator approval"), { status: 403 });
+  }
 }
 
 export function assertAdmin(profile: SessionProfile) {
   if (profile.employee.role !== "admin") {
     throw Object.assign(new Error("Administrator access required"), { status: 403 });
+  }
+  if (profile.employee.accountStatus !== "active") {
+    throw Object.assign(new Error("Account is waiting for administrator approval"), { status: 403 });
+  }
+}
+
+export function assertActive(profile: SessionProfile) {
+  if (profile.employee.accountStatus !== "active") {
+    throw Object.assign(new Error("Account is waiting for administrator approval"), { status: 403 });
   }
 }
 
@@ -234,7 +245,7 @@ export async function listEmployees(companyId: string, activeOnly = false): Prom
   const sql = await getSql();
   const rows = activeOnly
     ? await sql.query<EmpRow>(`${EMP_SELECT} where e.company_id = $1 and e.active = true order by e.last_name, e.first_name`, [companyId])
-    : await sql.query<EmpRow>(`${EMP_SELECT} where e.company_id = $1 order by e.role, e.last_name`, [companyId]);
+    : await sql.query<EmpRow>(`${EMP_SELECT} where e.company_id = $1 order by case when e.account_status = 'pending' then 0 when e.account_status = 'disabled' then 1 else 2 end, e.role, e.last_name`, [companyId]);
   return rows.map(mapEmployee);
 }
 

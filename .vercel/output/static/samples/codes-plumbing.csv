@@ -1,0 +1,38 @@
+book,code,description,category,trade,hours,parts_allowance,list_price,labor_value,active,notes
+plumbing,PA1A,Interior branch line cable,Drain-Cleaning,plumbing,2,0,273.00,273.00,true,
+plumbing,PA5B,Main Line Drain Cleaning Without Clean Out Access,Drain-Cleaning,plumbing,2,0,979.00,979.00,true,
+plumbing,PA6A,Drain Machine Additional Hour(s),Drain-Cleaning,plumbing,1,0,120.00,120.00,true,
+plumbing,PA7A,Camera additional hour(s),Drain-Cleaning,plumbing,1,0,180.00,180.00,true,
+plumbing,PA7C,Sewer Camera up to 2hrs,Drain-Cleaning,plumbing,2,0,549.00,549.00,true,
+plumbing,PB1C,Pressure Regulator Valve,Plumbing,plumbing,2,0,714.00,714.00,true,
+plumbing,PB4A,Expansion Tank,Plumbing,plumbing,1,0,447.00,447.00,true,
+plumbing,PC10A,Flange repair,Plumbing,plumbing,1,0,963.00,963.00,true,
+plumbing,PC10B,Replacement Toilet - Standard,Install,plumbing,1.5,0,750.00,750.00,true,
+plumbing,PC12A,Commercial Repair - Section Toilet/Urinal,Plumbing,plumbing,1.5,0,568.00,568.00,true,
+plumbing,PC1A,Basic Repair Section Toilet (Float/Flapper/Lever/Fill Valve),Plumbing,plumbing,1,0,308.00,308.00,true,
+plumbing,PC9A,Flange Replacement,Plumbing,plumbing,1,0,620.00,620.00,true,
+plumbing,PC9B,Customer Supplied - Standard Toilet,Install,plumbing,1.5,0,350.00,350.00,true,
+plumbing,PD3B,Sump Pump,Plumbing,plumbing,1.5,0,765.00,765.00,true,
+plumbing,PD7E,Sump Pump W/ Waterpower Back-up Option,Plumbing,plumbing,3,0,1884.00,1884.00,true,
+plumbing,PD8E,Sump Pump W Battery Back-up,Plumbing,plumbing,3,0,2498.00,2498.00,true,
+plumbing,PE10B,Electric 80 gallon,Install,plumbing,5,0,4133.00,4133.00,true,M/A=3514
+plumbing,PE11A,Tankless,Install,plumbing,5,0,5405.00,5405.00,true,M/A=4595
+plumbing,PE16B,40 Gallon NG PowerVenter HWH Install,Install,plumbing,5,0,3699.00,3699.00,true,
+plumbing,PE17A,50 gallon Powervent,Install,plumbing,5,0,5045.00,5045.00,true,M/A=4289
+plumbing,PE18A,75 gallon Powervent,Install,plumbing,5,0,6852.00,6852.00,true,M/A=5825
+plumbing,PE2B,Gas 40 gallon,Install,plumbing,4,0,2706.00,2706.00,true,M/A=2301
+plumbing,PE3B,Gas 50 gallon,Install,plumbing,4,0,3086.00,3086.00,true,M/A=2624
+plumbing,PE5B,Gas 75 gallon,Install,plumbing,5,0,3288.00,3288.00,true,M/A=2795
+plumbing,PE7B,Electric 40 gallon,Install,plumbing,4,0,2492.00,2492.00,true,M/A=2118
+plumbing,PE7B-50,Electric 50 gallon,Install,plumbing,4,0,2327.00,2327.00,true,M/A=1978 (alt PE7B)
+plumbing,PF1B,Tub / Shower Mixer Valve - Repair,Plumbing,plumbing,1.5,0,687.00,687.00,true,
+plumbing,PF4B,Install (HO Supplied) Levy/Vanity Faucet,Plumbing,plumbing,1.5,0,384.00,384.00,true,
+plumbing,PF5B,Vanity Faucet,Plumbing,plumbing,1.5,0,521.00,521.00,true,
+plumbing,PG1B,H.O.Supplied Kitchen Faucet INSTALL,Plumbing,plumbing,2,0,385.00,385.00,true,
+plumbing,PG2B,Kitchen Faucet,Plumbing,plumbing,1.5,0,578.00,578.00,true,
+plumbing,PG3B,Disposal,Plumbing,plumbing,1.5,0,517.00,517.00,true,
+plumbing,PH1A,Customer Supplied - Hose Bib,Plumbing,plumbing,1,0,285.00,285.00,true,
+plumbing,PH2A,"Hose Bibs (8""-10"")",Plumbing,plumbing,1,0,310.00,310.00,true,
+plumbing,PH3B,Ice Maker Water Line,Plumbing,plumbing,1.5,0,517.00,517.00,true,
+plumbing,PR1A,Jetting Lines Additional hour(s),Drain-Cleaning,plumbing,1,0,200.00,200.00,true,Additional Hours After The First Two
+plumbing,PR1C,Jetting Lines Up to 2HR,Drain-Cleaning,plumbing,2,0,1054.00,1054.00,true,

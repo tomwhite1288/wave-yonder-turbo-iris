@@ -12,7 +12,7 @@ import {
   writeAudit,
 } from "./session.server";
 import { hydrateToday } from "./hydrate.server";
-import type { CodeBookEntry, ExceptionView, PayrollRow, EfficiencyRow, AuditView } from "./types";
+import type { CodeBookEntry, CodeBookKind, CodeImportRow, ExceptionView, PayrollRow, EfficiencyRow, AuditView } from "./types";
 
 async function mgr(userId: string) {
   const profile = await requireProfile(userId);
@@ -331,35 +331,94 @@ export const listCodes = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const profile = await requireProfile(context.userId);
     const sql = await getSql();
-    const rows = await sql<CodeBookEntry & { typical_duration_min: number; labor_value: number; hours: number }>`
-      select id, code, description, category, trade, hours, labor_value, typical_duration_min, active, notes
+    const rows = await sql<{
+      id: string;
+      code: string;
+      description: string;
+      category: string;
+      trade: string;
+      book: string | null;
+      hours: number | string;
+      parts_allowance: number | string | null;
+      labor_value: number | string;
+      typical_duration_min: number | string;
+      active: boolean;
+      notes: string | null;
+    }>`
+      select id, code, description, category, trade, book, hours, parts_allowance, labor_value, typical_duration_min, active, notes
       from code_book where company_id = ${profile.employee.companyId}
-      order by code
+      order by book, code
     `;
     const items: CodeBookEntry[] = rows.map((r) => ({
-      ...r,
+      id: r.id,
+      code: r.code,
+      description: r.description,
+      category: r.category,
+      trade: r.trade,
+      book: r.book === "hvac" || r.book === "plumbing" ? r.book : "invoice",
       hours: num(r.hours),
+      partsAllowance: num(r.parts_allowance),
       laborValue: num(r.labor_value),
       typicalDurationMin: num(r.typical_duration_min),
+      active: r.active,
+      notes: r.notes,
     }));
     return { profile, items };
   });
 
+function asBook(v: string | undefined): CodeBookKind {
+  const s = (v ?? "").toLowerCase();
+  if (s.includes("hvac")) return "hvac";
+  if (s.includes("plumb")) return "plumbing";
+  return "invoice";
+}
+
 export const upsertCode = createServerFn({ method: "POST" })
-  .validator((d: { id?: string; code: string; description: string; category: string; trade: string; hours: number; laborValue: number; active: boolean; notes?: string }) => d)
+  .validator((d: {
+    id?: string;
+    code: string;
+    description: string;
+    category: string;
+    trade: string;
+    book?: string;
+    hours: number;
+    partsAllowance?: number;
+    laborValue: number;
+    active: boolean;
+    notes?: string;
+  }) => d)
   .middleware([authMiddleware])
   .handler(async ({ context, data }) => {
     const profile = await mgr(context.userId);
     assertAdmin(profile);
     const sql = await getSql();
-    const id = data.id ?? newId("cb");
+    const book = asBook(data.book);
+    const trade = data.trade || (book === "invoice" ? "both" : book);
+    let id = data.id;
+    if (!id) {
+      const existing = await sql<{ id: string }>`
+        select id from code_book
+        where company_id = ${profile.employee.companyId}
+          and book = ${book}
+          and code = ${data.code.toUpperCase()}
+        limit 1
+      `;
+      id = existing[0]?.id ?? newId("code");
+    }
+    const codeId = id;
     await sql`
-      insert into code_book (id, company_id, code, description, category, trade, hours, labor_value, typical_duration_min, active, notes, updated_at)
-      values (${id}, ${profile.employee.companyId}, ${data.code.toUpperCase()}, ${data.description}, ${data.category},
-        ${data.trade}, ${data.hours}, ${data.laborValue}, ${Math.round(data.hours * 60)}, ${data.active}, ${data.notes ?? null}, now())
+      insert into code_book (
+        id, company_id, code, description, category, trade, book, hours, parts_allowance,
+        labor_value, typical_duration_min, active, notes, updated_at
+      ) values (
+        ${codeId}, ${profile.employee.companyId}, ${data.code.toUpperCase()}, ${data.description}, ${data.category},
+        ${trade}, ${book}, ${data.hours}, ${data.partsAllowance ?? 0}, ${data.laborValue},
+        ${Math.round(data.hours * 60)}, ${data.active}, ${data.notes ?? null}, now()
+      )
       on conflict (id) do update set
         code = excluded.code, description = excluded.description, category = excluded.category,
-        trade = excluded.trade, hours = excluded.hours, labor_value = excluded.labor_value,
+        trade = excluded.trade, book = excluded.book, hours = excluded.hours,
+        parts_allowance = excluded.parts_allowance, labor_value = excluded.labor_value,
         typical_duration_min = excluded.typical_duration_min, active = excluded.active,
         notes = excluded.notes, updated_at = now()
     `;
@@ -369,10 +428,80 @@ export const upsertCode = createServerFn({ method: "POST" })
       actorName: profile.employee.name,
       action: data.id ? "update_code" : "create_code",
       entityType: "code_book",
-      entityId: id,
+      entityId: codeId,
       newValue: data,
     });
-    return { id };
+    return { id: codeId };
+  });
+
+export const importCodes = createServerFn({ method: "POST" })
+  .validator((d: { rows: CodeImportRow[] }) => d)
+  .middleware([authMiddleware])
+  .handler(async ({ context, data }) => {
+    const profile = await mgr(context.userId);
+    assertAdmin(profile);
+    if (!data.rows.length) throw new Error("No rows to import");
+    if (data.rows.length > 800) throw new Error("Import is limited to 800 rows at a time");
+    const sql = await getSql();
+    let upserted = 0;
+    let skipped = 0;
+    for (const raw of data.rows) {
+      const code = String(raw.code ?? "").trim().toUpperCase();
+      if (!code) {
+        skipped += 1;
+        continue;
+      }
+      const book = asBook(raw.book);
+      const hours = num(raw.hours);
+      const labor = num(raw.labor_value ?? raw.laborValue ?? raw.list_price);
+      const parts = num(raw.parts_allowance ?? raw.partsAllowance);
+      const trade = (raw.trade || (book === "invoice" ? "both" : book)).toLowerCase();
+      const activeRaw = raw.active;
+      const active = activeRaw === false || activeRaw === "false" || activeRaw === "0" ? false : true;
+      const found = await sql<{ id: string }>`
+        select id from code_book
+        where company_id = ${profile.employee.companyId} and book = ${book} and code = ${code}
+        limit 1
+      `;
+      if (found[0]) {
+        await sql`
+          update code_book set
+            description = ${raw.description || code},
+            category = ${raw.category || book},
+            trade = ${trade},
+            book = ${book},
+            hours = ${hours},
+            parts_allowance = ${parts},
+            labor_value = ${labor},
+            typical_duration_min = ${Math.round((hours || 1) * 60)},
+            active = ${active},
+            notes = ${raw.notes ?? null},
+            updated_at = now()
+          where id = ${found[0].id}
+        `;
+      } else {
+        await sql`
+          insert into code_book (
+            id, company_id, code, description, category, trade, book, hours, parts_allowance,
+            labor_value, typical_duration_min, active, notes, updated_at
+          ) values (
+            ${newId("code")}, ${profile.employee.companyId}, ${code}, ${raw.description || code},
+            ${raw.category || book}, ${trade}, ${book}, ${hours}, ${parts}, ${labor},
+            ${Math.round((hours || 1) * 60)}, ${active}, ${raw.notes ?? null}, now()
+          )
+        `;
+      }
+      upserted += 1;
+    }
+    await writeAudit({
+      companyId: profile.employee.companyId,
+      actorId: context.userId,
+      actorName: profile.employee.name,
+      action: "import_codes",
+      entityType: "code_book",
+      newValue: { upserted, skipped },
+    });
+    return { upserted, skipped };
   });
 
 export const getSettings = createServerFn({ method: "GET" })
@@ -406,6 +535,14 @@ export const saveSettings = createServerFn({ method: "POST" })
       "labor_rate",
       "parts_markup",
       "location_retention_days",
+      "theme_id",
+      "layout_mode",
+      "dispatch_show_map",
+      "dispatch_show_tiles",
+      "signup_open",
+      "signup_requires_approval",
+      "mobile_dock",
+      "role_nav",
     ]);
     for (const [key, value] of Object.entries(data)) {
       if (!allowed.has(key)) continue;

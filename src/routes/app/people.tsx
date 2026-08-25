@@ -2,16 +2,25 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { listPeople } from "@/lib/field/api";
-import { setEmployeeRole } from "@/lib/field/api-admin";
+import { setAccountStatus, setEmployeeRole } from "@/lib/field/api-admin";
 import { formatMoney } from "@/lib/utils";
 import type { Role } from "@/lib/field/types";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/app/people")({ component: PeoplePage });
 
 function PeoplePage() {
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ["people"], queryFn: () => listPeople() });
+  const statusMut = useMutation({
+    mutationFn: setAccountStatus,
+    onSuccess: () => {
+      toast.success("Account updated");
+      void qc.invalidateQueries({ queryKey: ["people"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
   const roleMut = useMutation({
     mutationFn: setEmployeeRole,
     onSuccess: () => {
@@ -30,7 +39,7 @@ function PeoplePage() {
     <div className="space-y-4">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">People</h1>
-        <p className="text-sm text-muted">Wage history is stored by effective date. Current rate shown.</p>
+        <p className="text-sm text-muted">Approve new logins, set roles, and keep wage history by effective date.</p>
       </div>
       <div className="grid gap-3 md:grid-cols-2">
         {people.map((p) => (
@@ -42,6 +51,11 @@ function PeoplePage() {
               </div>
               <Badge tone={p.role === "admin" ? "info" : p.role === "manager" ? "warn" : "ok"}>{p.role}</Badge>
             </div>
+            {p.accountStatus !== "active" ? (
+              <p className="mt-2 text-xs text-warn">
+                {p.accountStatus === "pending" ? "Waiting for administrator approval" : "Disabled"}
+              </p>
+            ) : null}
             <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
               <div>
                 <div className="text-xs uppercase tracking-wide text-subtle">Department</div>
@@ -61,6 +75,35 @@ function PeoplePage() {
               </div>
             </div>
             {isAdmin ? (
+              <>
+                {p.accountStatus === "pending" || p.accountStatus === "disabled" ? (
+                  <div className="mt-3 flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => statusMut.mutate({ data: { employeeId: p.id, status: "active" } })}
+                    >
+                      Approve
+                    </Button>
+                    {p.accountStatus === "pending" ? (
+                      <Button
+                        size="sm"
+                        variant="danger"
+                        onClick={() => statusMut.mutate({ data: { employeeId: p.id, status: "disabled" } })}
+                      >
+                        Deny
+                      </Button>
+                    ) : null}
+                  </div>
+                ) : p.role !== "admin" ? (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="mt-3"
+                    onClick={() => statusMut.mutate({ data: { employeeId: p.id, status: "disabled" } })}
+                  >
+                    Disable sign-in
+                  </Button>
+                ) : null}
               <label className="mt-3 block text-sm">
                 <span className="mb-1 block text-xs uppercase tracking-wide text-subtle">Role</span>
                 <select
@@ -76,6 +119,7 @@ function PeoplePage() {
                   <option value="technician">Technician</option>
                 </select>
               </label>
+              </>
             ) : null}
           </article>
         ))}

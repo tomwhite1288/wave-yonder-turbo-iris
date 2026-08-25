@@ -220,7 +220,7 @@ function Login() {
             <>
               <h1 className="text-lg font-semibold">Field team sign-in</h1>
               <p className="mt-1 text-sm text-muted">
-                Roster emails match existing employees. Everyone else is created as a technician.
+                Roster emails match existing employees. New logins wait for administrator approval before they can clock in.
               </p>
               {authEnabled ? (
                 <div className="mt-5 space-y-3">

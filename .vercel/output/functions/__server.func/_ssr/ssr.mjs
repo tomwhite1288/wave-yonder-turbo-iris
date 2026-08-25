@@ -118,7 +118,7 @@ var HEADERS = { TSS_SHELL: "X-TSS_SHELL" };
 * the dev styles URL for route-scoped CSS collection.
 */
 async function getStartManifest(matchedRoutes) {
-	const { tsrStartManifest } = await import("../_tanstack-start-manifest_v-BJSx8exn.mjs");
+	const { tsrStartManifest } = await import("../_tanstack-start-manifest_v-B7XxwsQX.mjs");
 	const startManifest = tsrStartManifest();
 	let routes = startManifest.routes;
 	routes[rootRouteId];
@@ -140,143 +140,167 @@ async function getStartManifest(matchedRoutes) {
 var manifest = {
 	"184389976b0ce472901a7a4ccab022bba41b0621787ee1ff9617d4d194719ae9": {
 		functionName: "adjustEntry_createServerFn_handler",
-		importer: () => import("./api-ops-2oHU5bZ1.mjs")
+		importer: () => import("./api-ops-DwLsqk1r.mjs")
 	},
 	"1b178e5f25a2b40350f3c9d572b4eef9be7b41bbb2af662b14b2a842754c4260": {
 		functionName: "listAudit_createServerFn_handler",
-		importer: () => import("./api-ops-2oHU5bZ1.mjs")
+		importer: () => import("./api-ops-DwLsqk1r.mjs")
 	},
 	"1c1a30c9bdb9be3ccc201cea2f36d3708c9575dc71a20aaff06fffb4df40f6a6": {
 		functionName: "listExceptions_createServerFn_handler",
-		importer: () => import("./api-ops-2oHU5bZ1.mjs")
+		importer: () => import("./api-ops-DwLsqk1r.mjs")
 	},
 	"21205be9b1be19a8cb2b5ee5e1e30d0868c99dfcf3032a96c261bca4d778a518": {
 		functionName: "getJob_createServerFn_handler",
-		importer: () => import("./api-BcJYDvWz.mjs")
+		importer: () => import("./api-Dh1oSc4q.mjs")
 	},
 	"25a1be0e9153568fb1c96f600a9ca88bac71a41fe19404b2118888bb21ffb44b": {
 		functionName: "listPeople_createServerFn_handler",
-		importer: () => import("./api-BcJYDvWz.mjs")
+		importer: () => import("./api-Dh1oSc4q.mjs")
+	},
+	"2628ed0ee57d25c0004285cb4c83f358987d31a97985b87b6c3ea19506a35d87": {
+		functionName: "setWorkOrderStatus_createServerFn_handler",
+		importer: () => import("./api-dispatch-B9UUqsmP.mjs")
 	},
 	"27de1327f4dd795e5296b46546af7f5a461675a757187ee3e257dac6a8b827f9": {
 		functionName: "getAdminLoginMeta_createServerFn_handler",
-		importer: () => import("./api-admin-EvYObUmK.mjs")
+		importer: () => import("./api-admin-CFiDkuf9.mjs")
+	},
+	"28d2eaa3099e46b3a681ce78edfc8bbdbd704f477531154f8010dcf4bb321820": {
+		functionName: "importCodes_createServerFn_handler",
+		importer: () => import("./api-ops-DwLsqk1r.mjs")
+	},
+	"2cb077b075826fc62c2a2046f34f009aec2259f3dd93e7b65004bab2f89605b1": {
+		functionName: "getDispatchDesk_createServerFn_handler",
+		importer: () => import("./api-dispatch-B9UUqsmP.mjs")
 	},
 	"3d2862191d396d332e0240acd582f7dea9eccdf092126cae67e33fb9ee2a1adc": {
 		functionName: "clockIn_createServerFn_handler",
-		importer: () => import("./api-BcJYDvWz.mjs")
+		importer: () => import("./api-Dh1oSc4q.mjs")
 	},
 	"43e3c00542fb7ed62857a4c3cf09cca15a5fb37b98e788c2c35dbf460d7390b9": {
 		functionName: "getReports_createServerFn_handler",
-		importer: () => import("./api-ops-2oHU5bZ1.mjs")
+		importer: () => import("./api-ops-DwLsqk1r.mjs")
 	},
 	"4ae9066a8531e109d498e31c21cfb490728ac41bd3f62c6325fda9e42812c7d8": {
 		functionName: "useTruckPart_createServerFn_handler",
-		importer: () => import("./api-parts-5SJEBr6S.mjs")
+		importer: () => import("./api-parts-B4v9m79S.mjs")
 	},
 	"4e8808c3c2610a4fd119cf4fcfef8537efe974b8e49065909744693dfda458f2": {
 		functionName: "setJobSiteToHere_createServerFn_handler",
-		importer: () => import("./api-BcJYDvWz.mjs")
+		importer: () => import("./api-Dh1oSc4q.mjs")
 	},
 	"513c5da810d38bf60bc1c1c1762cac3a5c645f0ff3175a575d9ce242b6c31c14": {
 		functionName: "setAdminAccessCode_createServerFn_handler",
-		importer: () => import("./api-admin-EvYObUmK.mjs")
+		importer: () => import("./api-admin-CFiDkuf9.mjs")
 	},
 	"551116927a92bed51a1a62bb8838d679586249f152809936ba656c13cfd5665a": {
 		functionName: "searchParts_createServerFn_handler",
-		importer: () => import("./api-parts-5SJEBr6S.mjs")
+		importer: () => import("./api-parts-B4v9m79S.mjs")
 	},
 	"560810467f473d691fb067993069b4005a50a6d027fb11e208f1cf5bf16c885d": {
 		functionName: "listTimecards_createServerFn_handler",
-		importer: () => import("./api-ops-2oHU5bZ1.mjs")
+		importer: () => import("./api-ops-DwLsqk1r.mjs")
 	},
 	"62fee2aeb2864ddc063a080a1b0c3d52b4ac6a742bc571e63ed84a2f310c401e": {
 		functionName: "getLiveBoard_createServerFn_handler",
-		importer: () => import("./api-BcJYDvWz.mjs")
+		importer: () => import("./api-Dh1oSc4q.mjs")
 	},
 	"6449f0984301b58d559512761a0ce5d8c9540d7fb1eefb26e9e240da90ebe86b": {
 		functionName: "submitNote_createServerFn_handler",
-		importer: () => import("./api-BcJYDvWz.mjs")
+		importer: () => import("./api-Dh1oSc4q.mjs")
+	},
+	"6ae0ad42dc995273e588da79a5d1588f97790137139aeaf56f2a1de5d52b2168": {
+		functionName: "setAccountStatus_createServerFn_handler",
+		importer: () => import("./api-admin-CFiDkuf9.mjs")
 	},
 	"77bcda31d66d1c4dc6300b9f0c700d827fee6664ef096523fac7b45a888280bc": {
 		functionName: "getEfficiency_createServerFn_handler",
-		importer: () => import("./api-ops-2oHU5bZ1.mjs")
+		importer: () => import("./api-ops-DwLsqk1r.mjs")
 	},
 	"79bbec6755a276eee7d668dc588b6b3204f22551bd73b3dee9d8516cdcd49513": {
 		functionName: "getPayroll_createServerFn_handler",
-		importer: () => import("./api-ops-2oHU5bZ1.mjs")
+		importer: () => import("./api-ops-DwLsqk1r.mjs")
 	},
 	"85db1286bf6ffaa2d8c89fd99ab26b893b8f56355e47ca989e30936e95144fc6": {
 		functionName: "replenishTruck_createServerFn_handler",
-		importer: () => import("./api-parts-5SJEBr6S.mjs")
+		importer: () => import("./api-parts-B4v9m79S.mjs")
 	},
 	"8d885e5438c55f22de99dd6a6778dc9a1edf8c75ca6dd28b6abefcac0b9f16f5": {
 		functionName: "getSettings_createServerFn_handler",
-		importer: () => import("./api-ops-2oHU5bZ1.mjs")
+		importer: () => import("./api-ops-DwLsqk1r.mjs")
 	},
 	"93de9bb59259f2c41992208449ed5eb1be3e02a7c52c31a2e8dd761dc27c266f": {
 		functionName: "clockOut_createServerFn_handler",
-		importer: () => import("./api-BcJYDvWz.mjs")
+		importer: () => import("./api-Dh1oSc4q.mjs")
 	},
 	"946684875afbdcab2a31b8c3c1578f39ce244715507cf71fa4558a9b87db84d1": {
 		functionName: "listCodes_createServerFn_handler",
-		importer: () => import("./api-ops-2oHU5bZ1.mjs")
+		importer: () => import("./api-ops-DwLsqk1r.mjs")
+	},
+	"985b56c598ab0bb9ada6869b000b9b30767b67dd3f62b4e00abfe7e9a9d38115": {
+		functionName: "createWorkOrder_createServerFn_handler",
+		importer: () => import("./api-dispatch-B9UUqsmP.mjs")
 	},
 	"9b32f60b2ff20b9b3b71c111419ac34e416840cb36cea3d214655b72e7731fec": {
 		functionName: "approveTimecard_createServerFn_handler",
-		importer: () => import("./api-ops-2oHU5bZ1.mjs")
+		importer: () => import("./api-ops-DwLsqk1r.mjs")
 	},
 	"a967907b1dd10518cc81d71b906848f97db5970184472e3b6c16c81405b815dd": {
 		functionName: "claimAdministrator_createServerFn_handler",
-		importer: () => import("./api-admin-EvYObUmK.mjs")
+		importer: () => import("./api-admin-CFiDkuf9.mjs")
 	},
 	"bff7d2bb32176a5adb23e489b638d226532a4660f106ef486620e19fe5504bc0": {
 		functionName: "upsertCode_createServerFn_handler",
-		importer: () => import("./api-ops-2oHU5bZ1.mjs")
+		importer: () => import("./api-ops-DwLsqk1r.mjs")
 	},
 	"c2c453b7b2852786da7f5acaa111bb98f392187270822d43c21f2f1d928403f6": {
 		functionName: "getTruck_createServerFn_handler",
-		importer: () => import("./api-parts-5SJEBr6S.mjs")
+		importer: () => import("./api-parts-B4v9m79S.mjs")
 	},
 	"c3d525e043d6b61c0bf50a82a3a69ad7548fd6a88c52449214c683573a1694f5": {
 		functionName: "getSessionProfile_createServerFn_handler",
-		importer: () => import("./api-BcJYDvWz.mjs")
+		importer: () => import("./api-Dh1oSc4q.mjs")
 	},
 	"c6ba80b8a1d3cb8b95daabef258d15f26693bbef0351d946784529860114452b": {
 		functionName: "getFieldToday_createServerFn_handler",
-		importer: () => import("./api-BcJYDvWz.mjs")
+		importer: () => import("./api-Dh1oSc4q.mjs")
 	},
 	"ca9ee1ce288c1279c5bac6b92ed4ddb082c52a67da24e1090359774b89df24c3": {
 		functionName: "listJobs_createServerFn_handler",
-		importer: () => import("./api-BcJYDvWz.mjs")
+		importer: () => import("./api-Dh1oSc4q.mjs")
 	},
 	"ce2efa6d87b2adccd171e5811a11375e2439af92dbea4bc0bfb22dbaef4b5d48": {
 		functionName: "pingGps_createServerFn_handler",
-		importer: () => import("./api-BcJYDvWz.mjs")
+		importer: () => import("./api-Dh1oSc4q.mjs")
+	},
+	"d3708a2138e31fb9333cc476efff2821441fc5e1f8d9d51a0fc59853f20b379e": {
+		functionName: "assignWorkOrder_createServerFn_handler",
+		importer: () => import("./api-dispatch-B9UUqsmP.mjs")
 	},
 	"d4246a3e189493476e18caa56a91b82598b4a76507c306fd75d7e1266657e49a": {
 		functionName: "getAdminEmails_createServerFn_handler",
-		importer: () => import("./api-admin-EvYObUmK.mjs")
+		importer: () => import("./api-admin-CFiDkuf9.mjs")
 	},
 	"e3fd0dfced984b8d01dffe0025fc7fb7657f6463534d337747cbd68d196a7e53": {
 		functionName: "resolveException_createServerFn_handler",
-		importer: () => import("./api-ops-2oHU5bZ1.mjs")
+		importer: () => import("./api-ops-DwLsqk1r.mjs")
 	},
 	"ebd2a930ea41a21ce9210409f24fbe353273fb76ed3edbbdcdc30acee0c5a3e3": {
 		functionName: "saveSettings_createServerFn_handler",
-		importer: () => import("./api-ops-2oHU5bZ1.mjs")
+		importer: () => import("./api-ops-DwLsqk1r.mjs")
 	},
 	"f67b98a9f222a4a5c5d25407b7ac3f4cd6474a99343dc48121dfee203ab93e0e": {
 		functionName: "setEmployeeRole_createServerFn_handler",
-		importer: () => import("./api-admin-EvYObUmK.mjs")
+		importer: () => import("./api-admin-CFiDkuf9.mjs")
 	},
 	"fa2d82dd022fe8d3a0bd93251917f88141b79d3e32c0ae9b5d78fb7d01962b9c": {
 		functionName: "saveAdminEmails_createServerFn_handler",
-		importer: () => import("./api-admin-EvYObUmK.mjs")
+		importer: () => import("./api-admin-CFiDkuf9.mjs")
 	},
 	"feb96307b17402618353ca8fe9b6ff7557c21bfce9a398367376237c7585bf53": {
 		functionName: "getSchedules_createServerFn_handler",
-		importer: () => import("./api-ops-2oHU5bZ1.mjs")
+		importer: () => import("./api-ops-DwLsqk1r.mjs")
 	}
 };
 async function getServerFnById(id, access) {
@@ -1546,7 +1570,7 @@ var getBaseManifest = getProdBaseManifest;
 var createEarlyHintsForRequest = createEarlyHintsCollector;
 async function loadEntries() {
 	const [routerEntry, startEntry, pluginAdapters] = await Promise.all([
-		import("./router-BVfsnTiD.mjs").then((n) => n.t),
+		import("./router-tqzv1bGm.mjs").then((n) => n.t),
 		import("./start-5Z2QO8AU.mjs"),
 		import("./empty-plugin-adapters-D9UWiqvJ.mjs")
 	]);

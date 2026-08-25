@@ -17,7 +17,7 @@ function JobsPage() {
     <div className="space-y-4">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Jobs</h1>
-        <p className="text-sm text-muted">Ticket numbers from the primary platform. This is not a dispatch board.</p>
+        <p className="text-sm text-muted">Ticket numbers from the primary platform or work orders created on the dispatch desk.</p>
       </div>
       <div className="grid gap-3 md:grid-cols-2">
         {tickets.map((t) => (
