@@ -1,14 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, Radio, ShieldCheck, Timer, MapPinned, BookOpen, Wallet } from "lucide-react";
-import { SignedIn, SignedOut } from "@/lib/auth/gates";
-import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/")({ component: Home });
 
 function Home() {
-  const { isPending } = useCurrentUserState();
-
   return (
     <main className="min-h-dvh bg-bg">
       <header className="mx-auto flex max-w-5xl items-center justify-between px-5 py-5">
@@ -21,26 +17,11 @@ function Home() {
             <div className="text-[11px] text-muted">Maichle's Edge</div>
           </div>
         </div>
-        {isPending ? (
-          <div className="h-9 w-24 animate-pulse rounded-md bg-elevated" />
-        ) : (
-          <>
-            <SignedIn>
-              <Button asChild size="sm">
-                <Link to="/app">
-                  Open board <ArrowRight className="size-4" />
-                </Link>
-              </Button>
-            </SignedIn>
-            <SignedOut>
-              <Button asChild size="sm" variant="secondary">
-                <Link to="/login" search={{}}>
-                  Sign in
-                </Link>
-              </Button>
-            </SignedOut>
-          </>
-        )}
+        <Button asChild size="sm">
+          <Link to="/login">
+            Sign in <ArrowRight className="size-4" />
+          </Link>
+        </Button>
       </header>
 
       <section className="mx-auto max-w-5xl px-5 pb-16 pt-8 stagger-in">
@@ -54,16 +35,19 @@ function Home() {
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
           <Button asChild>
-            <Link to="/login" search={{ mode: "admin" }}>
-              Administrator sign-in <ShieldCheck className="size-4" />
-            </Link>
+            <a href="/Maichles-Code-Book.html">
+              Phone code book <BookOpen className="size-4" />
+            </a>
           </Button>
           <Button asChild variant="secondary">
-            <Link to="/login" search={{}}>
-              Field team sign-in
+            <Link to="/login">
+              Field Ledger sign-in
             </Link>
           </Button>
         </div>
+        <p className="mt-4 max-w-2xl text-sm text-muted">
+          Phone copy is the Field Blue code book — one file. Type TOI for toilets. Hours + parts converts to a PM code.
+        </p>
 
         <div className="mt-14 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {[

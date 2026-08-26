@@ -21,6 +21,11 @@ export function metersToFeet(m: number): number {
   return m * 3.28084;
 }
 
+export function effectiveRadiusFt(radiusFt: number, accuracyM?: number | null) {
+  const extra = metersToFeet(Math.max(0, accuracyM ?? 0));
+  return radiusFt + extra;
+}
+
 export function resolveGpsStatus(opts: {
   hasFix: boolean;
   distanceFt: number | null;
@@ -28,22 +33,29 @@ export function resolveGpsStatus(opts: {
   approachingMultiplier: number;
   clockedIn: boolean;
   previouslyOnSite?: boolean;
+  officeDistanceFt?: number | null;
+  officeRadiusFt?: number;
+  accuracyM?: number | null;
 }): GpsStatus {
   if (!opts.hasFix) return "OFFLINE";
+  const officeRadius = effectiveRadiusFt(opts.officeRadiusFt ?? 200, opts.accuracyM);
+  if (opts.officeDistanceFt != null && opts.officeDistanceFt <= officeRadius) return "AT_OFFICE";
   if (opts.distanceFt == null) return "OFF_SITE";
-  const approach = opts.radiusFt * opts.approachingMultiplier;
-  if (opts.clockedIn && opts.distanceFt <= opts.radiusFt) return "WORKING";
-  if (opts.previouslyOnSite && opts.distanceFt > opts.radiusFt) return "LEFT_SITE";
-  if (opts.distanceFt <= opts.radiusFt) return "ON_SITE";
+  const radius = effectiveRadiusFt(opts.radiusFt, opts.accuracyM);
+  const approach = radius * opts.approachingMultiplier;
+  if (opts.clockedIn && opts.distanceFt <= radius) return "WORKING";
+  if (opts.previouslyOnSite && opts.distanceFt > radius) return "LEFT_SITE";
+  if (opts.distanceFt <= radius) return "ON_SITE";
   if (opts.distanceFt <= approach) return "APPROACHING";
   return "OFF_SITE";
 }
 
 export const GPS_LABEL: Record<GpsStatus, string> = {
   OFF_SITE: "Off site",
-  APPROACHING: "Approaching",
+  APPROACHING: "In transit",
   ON_SITE: "On site",
   WORKING: "Working",
   LEFT_SITE: "Left site",
+  AT_OFFICE: "At office",
   OFFLINE: "Offline",
 };

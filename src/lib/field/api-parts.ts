@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { authMiddleware } from "@/lib/auth/middleware";
+import { authMiddleware } from "@/lib/field/shop-middleware";
 import { getSql } from "@/lib/db";
 import { newId, num } from "@/lib/utils";
 import { assertManager, requireProfile, writeAudit } from "./session.server";

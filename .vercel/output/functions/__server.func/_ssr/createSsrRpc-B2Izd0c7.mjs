@@ -1,4 +1,4 @@
-import { a as getServerFnById, i as TSS_SERVER_FUNCTION } from "./ssr.mjs";
+import { s as getServerFnById, t as TSS_SERVER_FUNCTION } from "./ssr2.mjs";
 //#region node_modules/.nitro/vite/services/ssr/assets/createSsrRpc-B2Izd0c7.js
 var createSsrRpc = (functionId) => {
 	const url = "/_serverFn/" + functionId;

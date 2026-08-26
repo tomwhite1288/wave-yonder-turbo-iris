@@ -1,10 +1,14 @@
 import { getSql } from "@/lib/db";
 import { num, newId } from "@/lib/utils";
+import { parsePaidKinds, parsePayConditions } from "./calc";
 import type { AccountStatus, CompanySettings, Employee, Role, SessionProfile } from "./types";
+
 import { isListedAdminEmail, parseAdminEmails } from "./admin-auth.server";
 import { DEFAULT_DOCK, parseLayout, parseNavList, parseRoleNav, parseTheme } from "./nav";
+import { computeTrial, stampTrialStart, DEFAULT_TRIAL_DAYS } from "./trial.server";
 
-type EmpRow = {
+
+export type EmpRow = {
   id: string;
   company_id: string;
   user_id: string | null;
@@ -21,6 +25,8 @@ type EmpRow = {
   active: boolean;
   account_status?: AccountStatus | null;
   hourly_wage: number | string | null;
+  username?: string | null;
+  pin_hash?: string | null;
 };
 
 export function mapEmployee(row: EmpRow): Employee {
@@ -42,6 +48,7 @@ export function mapEmployee(row: EmpRow): Employee {
     active: row.active,
     accountStatus: row.account_status === "pending" || row.account_status === "disabled" ? row.account_status : "active",
     hourlyWage: num(row.hourly_wage),
+    username: row.username ?? null,
   };
 }
 
@@ -69,10 +76,16 @@ export async function loadSettings(companyId: string): Promise<CompanySettings> 
   const c = company[0];
   const n = (k: string, d: number) => num(map[k] ?? d);
   const flag = (k: string, d = true) => (map[k] ?? String(d)) !== "false";
-  return {
+  const settings: CompanySettings = {
     gpsRadiusFt: n("gps_radius_ft", 250),
-    gpsIntervalSec: n("gps_interval_sec", 30),
+    gpsIntervalSec: n("gps_interval_sec", 300),
     gpsGraceMin: n("gps_grace_min", 5),
+    gpsConfirmMin: n("gps_confirm_min", 15),
+    gpsFailFlagsWork: flag("gps_fail_flags_work"),
+    paySoldHours: flag("pay_sold_hours"),
+    efficiencyAlertPct: n("efficiency_alert_pct", 80),
+    payConditions: parsePayConditions(map.pay_conditions),
+    weeklyEmailTo: map.weekly_email_to || "",
     gpsAccuracyThresholdM: n("gps_accuracy_threshold_m", 50),
     approachingMultiplier: n("approaching_multiplier", 3),
     exceptionToleranceMin: n("exception_tolerance_min", 15),
@@ -82,7 +95,7 @@ export async function loadSettings(companyId: string): Promise<CompanySettings> 
     doubleTimeEnabled: (map.double_time_enabled ?? "false") === "true",
     travelCountsAsField: (map.travel_counts_as_field ?? "true") === "true",
     efficiencyAvailableSource: map.efficiency_available_source === "clock" ? "clock" : "schedule",
-    trackingOnlyDuringWork: (map.tracking_only_during_work ?? "true") === "true",
+    trackingOnlyDuringWork: (map.tracking_only_during_work ?? "false") === "true",
     laborRate: n("labor_rate", 185),
     partsMarkup: n("parts_markup", 1.55),
     locationRetentionDays: n("location_retention_days", 90),
@@ -100,8 +113,36 @@ export async function loadSettings(companyId: string): Promise<CompanySettings> 
     signupRequiresApproval: flag("signup_requires_approval"),
     mobileDock: parseNavList(map.mobile_dock, DEFAULT_DOCK),
     roleNav: parseRoleNav(map.role_nav),
+    officeName: map.office_name || "Shop / warehouse",
+    officeAddress: map.office_address || "105 J and M Drive",
+    officeCity: map.office_city || "New Castle",
+    officeState: map.office_state || "DE",
+    officeZip: map.office_zip || "19720",
+    officeLat: n("office_lat", 39.662),
+    officeLng: n("office_lng", -75.566),
+    officeRadiusFt: n("office_radius_ft", 200),
+    paidKinds: parsePaidKinds(map.paid_kinds),
+    requireGpsForPay: flag("require_gps_for_pay"),
+    payrollFedPct: n("payroll_fed_pct", 10),
+    payrollStatePct: n("payroll_state_pct", 3.07),
+    payrollFicaPct: n("payroll_fica_pct", 7.65),
+    officeSyncUrl: map.office_sync_url || "",
+    officeSyncKey: map.office_sync_key || "",
+    trialDays: n("trial_days", DEFAULT_TRIAL_DAYS),
+    trialStartedAt: map.trial_started_at || "",
+    trialUnlocked: (map.trial_unlocked ?? "false") === "true",
+    trialUnlockedAt: map.trial_unlocked_at || null,
+    demoLocked: (map.demo_locked ?? "false") === "true",
   };
+  if (!settings.trialStartedAt) {
+    const iso = new Date().toISOString();
+    await stampTrialStart(companyId, iso);
+    settings.trialStartedAt = iso;
+    settings.trialDays = DEFAULT_TRIAL_DAYS;
+  }
+  return settings;
 }
+
 
 export async function bootstrapProfile(opts: {
   userId: string;
@@ -192,32 +233,46 @@ async function finishProfile(row: EmpRow, opts: { userId: string; email: string 
     `;
     emp = { ...emp, role: "admin", accountStatus: "active", active: true };
   }
+  const settings = await loadSettings(emp.companyId);
   return {
     userId: opts.userId,
     email: opts.email,
     displayName: opts.name,
     employee: emp,
-    settings: await loadSettings(emp.companyId),
+    settings,
+    trial: computeTrial(settings),
   };
 }
 
 export async function requireProfile(userId: string): Promise<SessionProfile> {
   const sql = await getSql();
-  const rows = await sql.query<EmpRow>(`${EMP_SELECT} where e.user_id = $1`, [userId]);
+  let rows = await sql.query<EmpRow>(`${EMP_SELECT} where e.user_id = $1`, [userId]);
   if (!rows[0]) {
-    throw Object.assign(new Error("No employee profile"), { status: 403 });
+    rows = await sql.query<EmpRow>(`${EMP_SELECT} where e.id = $1`, [userId]);
+  }
+  if (!rows[0]) {
+    throw Object.assign(new Error("Sign in required"), { status: 401 });
   }
   const emp = mapEmployee(rows[0]);
+  const settings = await loadSettings(emp.companyId);
   return {
     userId,
     email: emp.email,
     displayName: emp.name,
     employee: emp,
-    settings: await loadSettings(emp.companyId),
+    settings,
+    trial: computeTrial(settings),
   };
 }
 
+export function assertLicensed(profile: SessionProfile) {
+  if (profile.trial.locked) {
+    throw Object.assign(new Error("Trial ended. Enter the shop unlock code."), { status: 402 });
+  }
+}
+
 export function assertManager(profile: SessionProfile) {
+  assertLicensed(profile);
   if (profile.employee.role === "technician") {
     throw Object.assign(new Error("Manager access required"), { status: 403 });
   }
@@ -227,6 +282,7 @@ export function assertManager(profile: SessionProfile) {
 }
 
 export function assertAdmin(profile: SessionProfile) {
+  assertLicensed(profile);
   if (profile.employee.role !== "admin") {
     throw Object.assign(new Error("Administrator access required"), { status: 403 });
   }
@@ -277,4 +333,4 @@ export async function writeAudit(opts: {
 }
 
 export { EMP_SELECT };
-export type { EmpRow };
+

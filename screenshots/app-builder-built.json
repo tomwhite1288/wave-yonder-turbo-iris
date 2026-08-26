@@ -4,28 +4,32 @@
     "desktop": {
       "width": 1280,
       "height": 800,
-      "status": 200,
-      "title": "Field Ledger",
+      "status": 500,
+      "title": "",
       "hasCanvas": false,
-      "bodyTextLen": 1025,
-      "bodyTextHash": "842848e69400b7090f135df21e89d563cfcd52f84635bd036d93e9981794286a",
-      "bodyTextPrefix": "Field Ledger Maichle's Edge Sign in COMPANION INTELLIGENCE LAYER",
+      "bodyTextLen": 51,
+      "bodyTextHash": "f23cb1f024501e19898ea07e6fc04d274c27c8ad421dc222add6450696ff96af",
+      "bodyTextPrefix": "{ \"error\": true, \"status\": 500, \"unhandled\": true }",
       "horizontalOverflow": false,
-      "consoleErrors": [],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+      ],
       "pageErrors": [],
       "screenshot": "/workspace/screenshots/app-builder-built.png"
     },
     "mobile": {
       "width": 390,
       "height": 844,
-      "status": 200,
-      "title": "Field Ledger",
+      "status": 500,
+      "title": "",
       "hasCanvas": false,
-      "bodyTextLen": 1025,
-      "bodyTextHash": "842848e69400b7090f135df21e89d563cfcd52f84635bd036d93e9981794286a",
-      "bodyTextPrefix": "Field Ledger Maichle's Edge Sign in COMPANION INTELLIGENCE LAYER",
+      "bodyTextLen": 51,
+      "bodyTextHash": "f23cb1f024501e19898ea07e6fc04d274c27c8ad421dc222add6450696ff96af",
+      "bodyTextPrefix": "{ \"error\": true, \"status\": 500, \"unhandled\": true }",
       "horizontalOverflow": false,
-      "consoleErrors": [],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+      ],
       "pageErrors": [],
       "screenshot": "/workspace/screenshots/app-builder-built-mobile.png"
     }
@@ -33,6 +37,15 @@
   "brandWarnings": [],
   "authWarnings": [],
   "verdictFile": "/workspace/screenshots/app-builder-built.json",
-  "divergesFromBaseline": false,
-  "baselineReasons": []
+  "divergesFromBaseline": true,
+  "baselineReasons": [
+    "desktop: HTTP status changed 200 -> 500",
+    "desktop: title changed (\"Field Ledger\" -> \"\")",
+    "desktop: console/page errors appeared (1)",
+    "desktop: body text collapsed (1249 -> 51 chars)",
+    "mobile: HTTP status changed 200 -> 500",
+    "mobile: title changed (\"Field Ledger\" -> \"\")",
+    "mobile: console/page errors appeared (1)",
+    "mobile: body text collapsed (1249 -> 51 chars)"
+  ]
 }

@@ -9,6 +9,7 @@ import type { CodeBookKind } from "@/lib/field/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { Spinner } from "@/components/spinner";
 
 export const Route = createFileRoute("/app/codes")({ component: CodesPage });
 
@@ -18,6 +19,20 @@ const BOOKS: { id: CodeBookKind | "all"; label: string }[] = [
   { id: "plumbing", label: "Plumbing" },
   { id: "hvac", label: "HVAC" },
 ];
+
+function highlight(text: string, query: string) {
+  const q = query.trim();
+  if (!q) return text;
+  const i = text.toLowerCase().indexOf(q.toLowerCase());
+  if (i < 0) return text;
+  return (
+    <>
+      {text.slice(0, i)}
+      <mark className="rounded-sm bg-primary/20 text-fg">{text.slice(i, i + q.length)}</mark>
+      {text.slice(i + q.length)}
+    </>
+  );
+}
 
 function CodesPage() {
   const qc = useQueryClient();
@@ -37,14 +52,6 @@ function CodesPage() {
       toast.success("Code saved");
       setCode("");
       setDescription("");
-      void qc.invalidateQueries({ queryKey: ["codes"] });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-  const imp = useMutation({
-    mutationFn: importCodes,
-    onSuccess: (res) => {
-      toast.success(`Imported ${res.upserted} codes`);
       void qc.invalidateQueries({ queryKey: ["codes"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -79,43 +86,69 @@ function CodesPage() {
       toast.error("No code rows found in those files");
       return;
     }
-    imp.mutate({ data: { rows } });
+    const CHUNK = 400;
+    const toastId = toast.loading(`Importing ${rows.length} codes…`);
+    try {
+      let upserted = 0;
+      let skipped = 0;
+      for (let i = 0; i < rows.length; i += CHUNK) {
+        const slice = rows.slice(i, i + CHUNK);
+        const res = await importCodes({ data: { rows: slice } });
+        upserted += res.upserted;
+        skipped += res.skipped;
+        toast.loading(`Imported ${upserted} of ${rows.length}…`, { id: toastId });
+      }
+      toast.success(`Imported ${upserted} codes${skipped ? ` (${skipped} skipped)` : ""}`, { id: toastId });
+      void qc.invalidateQueries({ queryKey: ["codes"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Import failed", { id: toastId });
+    }
   }
 
-  if (q.isLoading) return <div className="h-64 animate-pulse rounded-xl bg-surface" />;
+  if (q.isLoading) return <Spinner label="Loading code book…" />;
   if (q.error) return <p className="text-sm text-danger">{q.error.message}</p>;
 
   return (
     <div className="space-y-4">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Code book</h1>
-        <p className="text-sm text-muted">Invoice codes stay separate from plumbing and HVAC job codes. Import CSV yourself for beta — nothing is auto-loaded.</p>
+        <p className="text-sm text-muted">
+          Type a description — t, then o-i-l-e-t — and matching codes appear as you type, with estimated hours and
+          parts allowance. Plumbing carries both. HVAC hours are estimated from list price at the shop labor rate;
+          edit a row if your typical time differs.
+        </p>
       </div>
-
-      <Card className="space-y-3">
-        <h2 className="text-sm font-semibold">Lookup</h2>
-        <p className="text-xs text-muted">Search by description, or enter hours + parts allowance to find matching and in-range codes.</p>
-        <div className="grid gap-2 sm:grid-cols-4">
-          <Input placeholder="Description or code" value={query} onChange={(e) => setQuery(e.target.value)} />
-          <Input placeholder="Hours" inputMode="decimal" value={hours} onChange={(e) => setHours(e.target.value)} />
-          <Input placeholder="Parts allowance $" inputMode="decimal" value={parts} onChange={(e) => setParts(e.target.value)} />
-          <Button variant="secondary" onClick={() => { setQuery(""); setHours(""); setParts(""); }}>Clear</Button>
+      <Card className="space-y-3 rounded-2xl p-5">
+        <Input
+          autoFocus
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Start typing a description…"
+          className="h-12 text-base"
+        />
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {BOOKS.map((b) => (
+            <button
+              key={b.id}
+              type="button"
+              onClick={() => setBook(b.id)}
+              className={`h-11 rounded-md text-sm ${book === b.id ? "bg-primary text-primary-fg" : "bg-elevated text-muted"}`}
+            >
+              {b.label}
+            </button>
+          ))}
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <Input placeholder="Est. hours" inputMode="decimal" value={hours} onChange={(e) => setHours(e.target.value)} />
+          <Input placeholder="Parts $ allowance" inputMode="decimal" value={parts} onChange={(e) => setParts(e.target.value)} />
+        </div>
+        <div className="flex items-center justify-between text-xs text-muted">
+          <span>{filtered.length} shown · {items.length} in book</span>
+          <button type="button" className="text-primary" onClick={() => { setQuery(""); setHours(""); setParts(""); }}>
+            Clear
+          </button>
         </div>
       </Card>
-
-      <div className="flex flex-wrap items-center gap-2">
-        {BOOKS.map((b) => (
-          <button
-            key={b.id}
-            type="button"
-            onClick={() => setBook(b.id)}
-            className={`h-9 rounded-md px-3 text-xs font-medium ${book === b.id ? "bg-primary text-primary-fg" : "bg-surface text-muted shadow-[var(--shadow-border)]"}`}
-          >
-            {b.label}
-          </button>
-        ))}
-        <span className="ml-auto text-xs text-muted">{filtered.length} shown · {items.length} in book</span>
-      </div>
 
       {isAdmin ? (
         <Card className="space-y-3">
@@ -160,31 +193,51 @@ function CodesPage() {
             <span className="mt-1 block text-xs text-muted">
               Columns: book, code, description, category, trade, hours, parts_allowance, list_price, labor_value, active, notes
             </span>
-            <p className="mt-2 text-xs text-muted">
-              Sample packs (not loaded):{" "}
-              <a className="text-primary underline-offset-2 hover:underline" href="/samples/codes-all.csv" download>
-                all books
-              </a>
-              {" · "}
-              <a className="text-primary underline-offset-2 hover:underline" href="/samples/codes-invoice.csv" download>
-                invoice
-              </a>
-              {" · "}
-              <a className="text-primary underline-offset-2 hover:underline" href="/samples/codes-plumbing.csv" download>
-                plumbing
-              </a>
-              {" · "}
-              <a className="text-primary underline-offset-2 hover:underline" href="/samples/codes-hvac.csv" download>
-                HVAC
-              </a>
-            </p>
+            <div className="mt-3 space-y-1.5 text-xs text-muted">
+              <p className="font-medium text-fg">Phone copy — one HTML file on this site</p>
+              <p>
+                <a className="text-primary underline-offset-2 hover:underline" href="/Maichles-Code-Book.html">
+                  Maichle's Code Book
+                </a>
+                <span>
+                  {" "}
+                  · the whole truck app, hosted here. Open it on the phone and add to the home screen, or save that
+                  single file. No zip, no Python, no extra CSS — iPhone and Android will not host a folder of scripts.
+                </span>
+              </p>
+              <p className="font-medium text-fg">Office import — download, then import here. Not loaded until you do.</p>
+              <p>
+                <a className="text-primary underline-offset-2 hover:underline" href="/samples/codes-hvac.csv" download>
+                  HVAC
+                </a>
+                <span> · 3,159 codes from Service.csv</span>
+              </p>
+              <p>
+                <a className="text-primary underline-offset-2 hover:underline" href="/samples/codes-plumbing.csv" download>
+                  Plumbing
+                </a>
+                <span> · 1,172 codes from Plumbing.xlsx</span>
+              </p>
+              <p>
+                <a className="text-primary underline-offset-2 hover:underline" href="/samples/codes-invoice.csv" download>
+                  Invoice
+                </a>
+                <span> · 47 office / labor codes</span>
+              </p>
+              <p>
+                <a className="text-primary underline-offset-2 hover:underline" href="/samples/codes-all.csv" download>
+                  All books
+                </a>
+                <span> · 4,378 rows, one file</span>
+              </p>
+            </div>
           </label>
         </Card>
       ) : null}
 
       {items.length === 0 ? (
         <Card>
-          <p className="text-sm text-muted">Code book is empty on purpose. Import the beta CSV when you are ready.</p>
+          <p className="text-sm text-muted">Code book is empty on purpose. Download HVAC, plumbing, or all books above and import when you are ready.</p>
         </Card>
       ) : (
         <div className="overflow-x-auto rounded-xl bg-surface shadow-[var(--shadow-border)]">
@@ -199,8 +252,8 @@ function CodesPage() {
             <tbody>
               {filtered.map(({ item, tag }) => (
                 <tr key={item.id} className="border-b border-border/70 last:border-0">
-                  <td className="px-4 py-3 font-mono">{item.code}</td>
-                  <td className="px-4 py-3">{item.description}</td>
+                  <td className="px-4 py-3 font-mono">{highlight(item.code, query)}</td>
+                  <td className="px-4 py-3">{highlight(item.description, query)}</td>
                   <td className="px-4 py-3 capitalize text-muted">{item.book}</td>
                   <td className="px-4 py-3 font-mono tabular">{formatHours(item.hours)}</td>
                   <td className="px-4 py-3 font-mono tabular">{formatMoney(item.partsAllowance)}</td>

@@ -1,17 +1,20 @@
 import { getSql } from "@/lib/db";
 import { num } from "@/lib/utils";
-import { minutesBetween, classifyMinutes, emptyDayHours, addDayHours } from "./calc";
+import { hoursFromEntries, minutesBetween } from "./calc";
+
 import { haversineMeters, metersToFeet, resolveGpsStatus } from "./geo";
 import type {
   CompanySettings,
-  DayHours,
   GpsStatus,
+  JobKind,
   LiveTechRow,
   TicketSummary,
   TimeEntryView,
   TimeKind,
 } from "./types";
+
 import { mapEmployee, type EmpRow, EMP_SELECT } from "./session.server";
+import { loadDurable } from "./durable.server";
 
 type TicketRow = {
   id: string;
@@ -35,6 +38,7 @@ type TicketRow = {
   status: string;
   work_detail: string | null;
   notes: string | null;
+  job_kind?: string | null;
 };
 
 type CodeRow = { ticket_id: string; code: string; hours_expected: number | string; labor_value: number | string };
@@ -63,6 +67,7 @@ export function mapTicket(row: TicketRow, codes: CodeRow[], defaultRadius: numbe
     status: row.status,
     workDetail: row.work_detail,
     notes: row.notes,
+    jobKind: row.job_kind === "callback" || row.job_kind === "warranty" ? (row.job_kind as JobKind) : "service",
     codes: attached.map((c) => ({
       code: c.code,
       hoursExpected: num(c.hours_expected),
@@ -77,13 +82,14 @@ const TICKET_SELECT = `
          t.lat, t.lng, t.gps_radius_ft, t.scheduled_start, t.scheduled_end, t.technician_id,
          trim(coalesce(e.first_name,'') || ' ' || coalesce(e.last_name,'')) as technician_name,
          t.invoice_number, t.invoice_amount, t.labor_amount, t.parts_amount, t.status,
-         t.work_detail, t.notes
+         t.work_detail, t.notes, coalesce(t.job_kind, 'service') as job_kind
   from tickets t
   left join employees e on e.id = t.technician_id
 `;
 
 export async function loadTickets(companyId: string, defaultRadius: number, technicianId?: string): Promise<TicketSummary[]> {
   const sql = await getSql();
+  await sql.query("alter table tickets add column if not exists job_kind text not null default 'service'");
   const rows = technicianId
     ? await sql.query<TicketRow>(`${TICKET_SELECT} where t.company_id = $1 and t.technician_id = $2 order by t.scheduled_start asc`, [companyId, technicianId])
     : await sql.query<TicketRow>(`${TICKET_SELECT} where t.company_id = $1 order by t.scheduled_start asc`, [companyId]);
@@ -94,18 +100,43 @@ export async function loadTickets(companyId: string, defaultRadius: number, tech
     `select ticket_id, code, hours_expected, labor_value from ticket_codes where ticket_id in (${placeholders})`,
     ids,
   );
-  return rows.map((r) => mapTicket(r, codes, defaultRadius));
+  const mapped = rows.map((r) => mapTicket(r, codes, defaultRadius));
+  try {
+    const durable = await loadDurable();
+    for (const t of mapped) {
+      const pin = durable.ticketPins[t.id];
+      if (pin && (t.lat == null || t.lng == null)) {
+        t.lat = pin.lat;
+        t.lng = pin.lng;
+      }
+    }
+  } catch {
+    /* sql pins still used */
+  }
+  return mapped;
 }
 
 export async function loadTicketById(id: string, defaultRadius: number): Promise<TicketSummary | null> {
   const sql = await getSql();
+  await sql.query("alter table tickets add column if not exists job_kind text not null default 'service'");
   const rows = await sql.query<TicketRow>(`${TICKET_SELECT} where t.id = $1`, [id]);
   if (!rows[0]) return null;
   const codes = await sql.query<CodeRow>(
     `select ticket_id, code, hours_expected, labor_value from ticket_codes where ticket_id = $1`,
     [id],
   );
-  return mapTicket(rows[0], codes, defaultRadius);
+  const ticket = mapTicket(rows[0], codes, defaultRadius);
+  try {
+    const durable = await loadDurable();
+    const pin = durable.ticketPins[ticket.id];
+    if (pin && (ticket.lat == null || ticket.lng == null)) {
+      ticket.lat = pin.lat;
+      ticket.lng = pin.lng;
+    }
+  } catch {
+    /* */
+  }
+  return ticket;
 }
 
 type EntryRow = {
@@ -118,6 +149,9 @@ type EntryRow = {
   clock_out: string | null;
   billable_minutes: number | string;
   non_billable_minutes: number | string;
+  paid_minutes?: number | string | null;
+  unpaid_minutes?: number | string | null;
+  gps_backed?: boolean | null;
   gps_status: string | null;
   clock_in_distance_ft: number | string | null;
   notes: string | null;
@@ -126,6 +160,8 @@ type EntryRow = {
   approval_status: string;
   original_clock_in: string | null;
   original_clock_out: string | null;
+  gps_confirm_status?: string | null;
+  gps_confirm_until?: string | null;
 };
 
 export function mapEntry(row: EntryRow): TimeEntryView {
@@ -139,6 +175,9 @@ export function mapEntry(row: EntryRow): TimeEntryView {
     clockOut: row.clock_out,
     billableMinutes: num(row.billable_minutes),
     nonBillableMinutes: num(row.non_billable_minutes),
+    paidMinutes: num(row.paid_minutes),
+    unpaidMinutes: num(row.unpaid_minutes),
+    gpsBacked: Boolean(row.gps_backed),
     gpsStatus: row.gps_status,
     clockInDistanceFt: row.clock_in_distance_ft == null ? null : num(row.clock_in_distance_ft),
     notes: row.notes,
@@ -147,8 +186,11 @@ export function mapEntry(row: EntryRow): TimeEntryView {
     approvalStatus: row.approval_status,
     originalClockIn: row.original_clock_in,
     originalClockOut: row.original_clock_out,
+    gpsConfirmStatus: row.gps_confirm_status ?? null,
+    gpsConfirmUntil: row.gps_confirm_until ?? null,
   };
 }
+
 
 export async function loadEntries(opts: {
   companyId: string;
@@ -179,26 +221,12 @@ export async function loadEntries(opts: {
   return rows.map(mapEntry);
 }
 
-export function hoursFromEntries(entries: TimeEntryView[], now = new Date()): DayHours {
-  return entries.reduce((acc, entry) => {
-    const total = minutesBetween(entry.clockIn, entry.clockOut, now);
-    const split = classifyMinutes(entry.kind, total, entry.billableMinutes || (entry.kind === "work" ? total : 0));
-    const worked = entry.kind === "break" ? 0 : total;
-    return addDayHours(acc, {
-      billable: split.billable,
-      nonBillable: split.nonBillable,
-      admin: split.admin,
-      travel: split.travel,
-      breakMin: split.breakMin,
-      worked,
-    });
-  }, emptyDayHours());
-}
+export { hoursFromEntries };
 
 export async function liveBoard(companyId: string, settings: CompanySettings): Promise<LiveTechRow[]> {
   const sql = await getSql();
   const techs = await sql.query<EmpRow>(
-    `${EMP_SELECT} where e.company_id = $1 and e.role = 'technician' and e.active = true order by e.last_name`,
+    `${EMP_SELECT} where e.company_id = $1 and e.active = true order by e.last_name`,
     [companyId],
   );
   const tickets = await loadTickets(companyId, settings.gpsRadiusFt);
@@ -218,6 +246,24 @@ export async function liveBoard(companyId: string, settings: CompanySettings): P
     order by employee_id, recorded_at desc
   `;
   const gpsMap = new Map(gps.map((g) => [g.employee_id, g]));
+  try {
+    const durable = await loadDurable();
+    for (const fix of Object.values(durable.gps)) {
+      const existing = gpsMap.get(fix.employeeId);
+      if (!existing || String(fix.at) > String(existing.recorded_at)) {
+        gpsMap.set(fix.employeeId, {
+          employee_id: fix.employeeId,
+          lat: fix.lat,
+          lng: fix.lng,
+          recorded_at: fix.at,
+          distance_ft: fix.distanceFt,
+          status: fix.status,
+        });
+      }
+    }
+  } catch {
+    /* map still works from sql */
+  }
 
   return techs.map((row) => {
     const employee = mapEmployee(row);
@@ -238,7 +284,10 @@ export async function liveBoard(companyId: string, settings: CompanySettings): P
     if (distanceFt == null && last && ticket?.lat != null && ticket.lng != null) {
       distanceFt = metersToFeet(haversineMeters(num(last.lat), num(last.lng), ticket.lat, ticket.lng));
     }
-    const clockedIn = Boolean(open && open.kind === "work");
+    const officeDistanceFt = last
+      ? metersToFeet(haversineMeters(num(last.lat), num(last.lng), settings.officeLat, settings.officeLng))
+      : null;
+    const clockedIn = Boolean(open && (open.kind === "work" || open.kind === "show"));
     const previouslyOnSite = last?.status === "WORKING" || last?.status === "ON_SITE" || last?.status === "LEFT_SITE";
     const gpsStatus: GpsStatus = last
       ? resolveGpsStatus({
@@ -248,8 +297,11 @@ export async function liveBoard(companyId: string, settings: CompanySettings): P
           approachingMultiplier: settings.approachingMultiplier,
           clockedIn,
           previouslyOnSite,
+          officeDistanceFt,
+          officeRadiusFt: settings.officeRadiusFt,
         })
       : "OFFLINE";
+
     const arrival = open?.clockIn ?? null;
     const durationMin = open ? minutesBetween(open.clockIn, open.clockOut) : hours.worked;
     const available = 8.5;

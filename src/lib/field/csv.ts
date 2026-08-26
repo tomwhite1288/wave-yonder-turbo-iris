@@ -80,7 +80,7 @@ export function rowToImport(row: Record<string, string>, filename: string): Code
 
 export function findMatchingCodes<T extends { code: string; description: string; hours: number; partsAllowance: number; book: string; category: string }>(
   items: T[],
-  opts: { query?: string; hours?: number; parts?: number; book?: string },
+  opts: { query?: string; hours?: number; parts?: number; book?: string; hourWindow?: number; partsPct?: number },
 ) {
   const q = (opts.query ?? "").trim().toLowerCase();
   let pool = items;
@@ -90,6 +90,8 @@ export function findMatchingCodes<T extends { code: string; description: string;
   }
   const hours = opts.hours;
   const parts = opts.parts;
+  const hourWindow = opts.hourWindow ?? 1;
+  const partsPct = opts.partsPct ?? 0.25;
   const scored = pool.map((c) => {
     let score = 0;
     let tag: "match" | "range" | "search" = "search";
@@ -98,29 +100,36 @@ export function findMatchingCodes<T extends { code: string; description: string;
       if (dh < 0.001) {
         score += 50;
         tag = "match";
-      } else if (dh <= 0.5) {
+      } else if (dh <= hourWindow * 0.5) {
         score += 30 - dh * 10;
         tag = "range";
-      } else if (dh <= 1) {
+      } else if (dh <= hourWindow) {
         score += 12 - dh * 4;
         tag = "range";
       }
     }
     if (parts != null && Number.isFinite(parts) && parts > 0) {
-      if (c.partsAllowance >= parts && c.partsAllowance <= parts * 1.25) {
+      const lo = parts;
+      const hi = parts * (1 + partsPct);
+      if (c.partsAllowance >= lo && c.partsAllowance <= hi) {
         score += 24;
         if (tag === "search") tag = "range";
-      } else if (Math.abs(c.partsAllowance - parts) <= Math.max(25, parts * 0.2)) {
+      } else if (Math.abs(c.partsAllowance - parts) <= Math.max(25, parts * partsPct)) {
         score += 14;
         if (tag === "search") tag = "range";
       }
     }
     if (q && c.code.toLowerCase() === q) score += 40;
-    if (q && c.description.toLowerCase().startsWith(q)) score += 10;
+    if (q) {
+      const desc = c.description.toLowerCase();
+      if (desc.startsWith(q)) score += 18;
+      else if (desc.split(/[\s,/·-]+/).some((w) => w.startsWith(q))) score += 14;
+      else if (desc.includes(q)) score += 8;
+    }
     return { item: c, score, tag };
   });
   return scored
     .filter((s) => (hours == null && parts == null && !q ? true : s.score > 0 || (q && s.tag === "search")))
     .sort((a, b) => b.score - a.score || a.item.hours - b.item.hours)
-    .slice(0, 40);
+    .slice(0, 80);
 }

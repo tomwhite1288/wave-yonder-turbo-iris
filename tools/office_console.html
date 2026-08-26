@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Field Ledger · Office sync</title>
+  <style>
+    :root { --bg:#10161d; --card:#18222c; --fg:#e8eef6; --muted:#8b9aab; --line:#243040; --accent:#3d8bfd; }
+    * { box-sizing: border-box; }
+    body { margin:0; font: 15px/1.45 "Avenir Next", "Segoe UI", sans-serif; background:var(--bg); color:var(--fg); }
+    main { max-width: 720px; margin: 0 auto; padding: 32px 20px 64px; }
+    h1 { font-size: 22px; margin: 0 0 6px; letter-spacing: -0.02em; }
+    p.lead { color: var(--muted); margin: 0 0 24px; }
+    section { background: var(--card); border-radius: 16px; padding: 20px; margin-bottom: 16px; }
+    label { display:block; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 12px 0 6px; }
+    input { width:100%; height: 44px; border:1px solid var(--line); border-radius: 10px; background:#0d1218; color:var(--fg); padding: 0 12px; font: inherit; }
+    .row { display:flex; flex-wrap:wrap; gap:8px; margin-top: 16px; }
+    button { height: 40px; padding: 0 14px; border:0; border-radius: 10px; background:#243040; color:var(--fg); font: inherit; cursor:pointer; }
+    button.primary { background: var(--accent); color:#fff; }
+    pre { background:#0d1218; border-radius: 12px; padding: 14px; min-height: 180px; overflow:auto; color:#c5d0dc; font: 12px/1.5 ui-monospace, Menlo, monospace; white-space: pre-wrap; }
+    .status { color: var(--muted); font-size: 13px; margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Office sync</h1>
+    <p class="lead">Pull and push hours, invoices, and receipts. Same company key as Maichle’s Edge. This is not Google sign-in.</p>
+    <section>
+      <label>Hosted app / Netlify URL</label>
+      <input id="remote" placeholder="https://your-site.netlify.app" />
+      <label>This computer</label>
+      <input id="local" value="" />
+      <label>Company sync key</label>
+      <input id="key" value="maichles-office" />
+      <div class="row">
+        <button class="primary" data-act="pull-remote">Pull from hosted</button>
+        <button data-act="push-remote">Push to hosted</button>
+        <button data-act="pull-local">Pull local</button>
+        <button data-act="push-local">Push local</button>
+        <button data-act="backup">Backup here</button>
+        <button data-act="ping">Ping local</button>
+      </div>
+      <p class="status" id="status">Ready.</p>
+    </section>
+    <pre id="log"></pre>
+  </main>
+  <script>
+    const logEl = document.getElementById("log");
+    const statusEl = document.getElementById("status");
+    const localInput = document.getElementById("local");
+    localInput.value = location.origin;
+    let lastDoc = { rev: 0, data: null };
+
+    function log(msg, obj) {
+      const line = "[" + new Date().toLocaleTimeString() + "] " + msg + (obj ? "\n" + JSON.stringify(obj, null, 2).slice(0, 1200) : "");
+      logEl.textContent = line + "\n" + logEl.textContent;
+      statusEl.textContent = msg;
+    }
+
+    async function call(base, method, path, body) {
+      const key = document.getElementById("key").value.trim();
+      const res = await fetch(base.replace(/\/$/, "") + path, {
+        method,
+        headers: { "content-type": "application/json", "x-sync-key": key, "x-field-key": key },
+        body: body ? JSON.stringify(body) : undefined,
+      });
+      const text = await res.text();
+      let json;
+      try { json = JSON.parse(text); } catch { json = { message: text }; }
+      if (!res.ok) throw new Error(json.error || json.message || res.status);
+      return json;
+    }
+
+    document.querySelector("section").addEventListener("click", async (e) => {
+      const act = e.target.getAttribute("data-act");
+      if (!act) return;
+      const remote = document.getElementById("remote").value.trim();
+      const local = localInput.value.trim() || location.origin;
+      try {
+        if (act === "ping") {
+          log("Local health", await call(local, "GET", "/health"));
+        } else if (act === "pull-remote") {
+          if (!remote) throw new Error("Set the hosted URL");
+          lastDoc = await call(remote, "GET", "/api/sync");
+          await call(local, "PUT", "/api/sync", { rev: lastDoc.rev || 0, data: lastDoc.data });
+          log("Pulled hosted rev " + (lastDoc.rev || 0) + " and saved locally", { rev: lastDoc.rev });
+        } else if (act === "push-remote") {
+          if (!remote) throw new Error("Set the hosted URL");
+          const localDoc = await call(local, "GET", "/api/sync");
+          const out = await call(remote, "PUT", "/api/sync", { rev: localDoc.rev || 0, data: localDoc.data });
+          log("Pushed to hosted rev " + out.rev, { rev: out.rev });
+        } else if (act === "pull-local") {
+          lastDoc = await call(local, "GET", "/api/sync");
+          log("Local rev " + (lastDoc.rev || 0), { rev: lastDoc.rev, keys: Object.keys(lastDoc.data || {}) });
+        } else if (act === "push-local") {
+          const out = await call(local, "PUT", "/api/sync", { rev: lastDoc.rev || 0, data: lastDoc.data });
+          log("Wrote local rev " + out.rev);
+        } else if (act === "backup") {
+          const doc = await call(local, "GET", "/api/sync");
+          const out = await call(local, "POST", "/api/push", { action: "backup", data: doc.data });
+          log("Backup " + (out.file || "ok"));
+        }
+      } catch (err) {
+        log("Error: " + (err && err.message ? err.message : err));
+      }
+    });
+  </script>
+</body>
+</html>

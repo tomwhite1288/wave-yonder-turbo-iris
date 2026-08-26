@@ -3,20 +3,41 @@ import { pendingMigrations } from "../../scripts/migration-plan.mjs";
 /** Which database backend is active. */
 export type DbSource = "neon" | "pglite";
 
-// An empty/whitespace DATABASE_URL (an easy misconfig in deploy UIs) must mean
-// "unset" — otherwise production would silently run on the PGLite fallback.
-const rawDatabaseUrl =
-  typeof process !== "undefined" ? process.env.DATABASE_URL : undefined;
-const databaseUrl =
-  rawDatabaseUrl && rawDatabaseUrl.trim() ? rawDatabaseUrl : undefined;
+function readDatabaseUrl(): string | undefined {
+  if (typeof process === "undefined") return undefined;
+  const raw = process.env.DATABASE_URL?.trim();
+  if (!raw) return undefined;
+  // Imported placeholder from netlify.env is not a real database.
+  if (/USER:PASSWORD|ep-XXXX|REPLACE|changeme|YOUR-|PASSWORD@/i.test(raw)) return undefined;
+  if (!/^postgres(ql)?:\/\//i.test(raw)) return undefined;
+  return raw;
+}
+
+function isServerlessRuntime(): boolean {
+  if (typeof process === "undefined") return false;
+  return Boolean(
+    process.env.NETLIFY ||
+      process.env.AWS_LAMBDA_FUNCTION_NAME ||
+      process.env.LAMBDA_TASK_ROOT ||
+      process.env.VERCEL,
+  );
+}
 
 /**
  * Active backend: real **Neon** when `DATABASE_URL` is set (deployed / configured
  * sandbox), otherwise a local embedded **PGLite** (Postgres compiled to WASM) so
  * the app has a working database even with nothing configured — the live preview
  * included. Swap in Neon later by just setting `DATABASE_URL`; no code changes.
+ *
+ * Read lazily so Netlify/Vercel functions see runtime env, not a build-time empty
+ * string. Without a real Neon URL the embedded PGLite database is used, including
+ * on Netlify (persisted to Netlify Blobs when that context exists).
  */
-export const dbSource: DbSource = databaseUrl ? "neon" : "pglite";
+export function currentDbSource(): DbSource {
+  return readDatabaseUrl() ? "neon" : "pglite";
+}
+
+export const dbSource: DbSource = currentDbSource();
 
 /**
  * Minimal shared SQL surface, satisfied by both Neon and PGLite. Both the
@@ -93,7 +114,15 @@ function createNeonSql(): Promise<Sql> {
     types.setTypeParser(OID_INT8, Number);
     types.setTypeParser(OID_DATE, identity);
     types.setTypeParser(OID_INTERVAL, identity);
-    const pool = new Pool({ connectionString: databaseUrl });
+    const connectionString = readDatabaseUrl();
+    if (!connectionString) throw new Error("DATABASE_URL missing");
+    const pool = new Pool({
+      connectionString,
+      ssl:
+        /sslmode=disable/i.test(connectionString)
+          ? undefined
+          : { rejectUnauthorized: false },
+    });
     return toSql(async <T>(text: string, params: unknown[]) => {
       const res = await pool.query(text, params);
       return res.rows as T[];
@@ -105,20 +134,64 @@ function createNeonSql(): Promise<Sql> {
   return globalRef.__pgSqlPromise__;
 }
 
+async function loadPgliteDump(): Promise<Blob | File | undefined> {
+  if (!isServerlessRuntime()) return undefined;
+  try {
+    const { getStore } = await import("@netlify/blobs");
+    const store = getStore({ name: "fieldledger-db", consistency: "strong" });
+    const data = await store.get("pglite.dump", { type: "blob" });
+    return data ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+let persistTimer: ReturnType<typeof setTimeout> | null = null;
+function schedulePglitePersist(pg: import("@electric-sql/pglite").PGlite) {
+  if (!isServerlessRuntime()) return;
+  if (persistTimer) clearTimeout(persistTimer);
+  persistTimer = setTimeout(() => {
+    void persistPgliteNow();
+  }, 200);
+}
+
+/** Flush the in-memory shop database to Netlify Blobs so the next request sees it. */
+export async function persistPgliteNow() {
+  if (typeof window !== "undefined") return;
+  if (currentDbSource() !== "pglite") return;
+  if (!isServerlessRuntime()) return;
+  try {
+    const pg = await globalRef.__pgliteInstance__;
+    if (!pg) return;
+    const dump = await pg.dumpDataDir("gzip");
+    const { getStore } = await import("@netlify/blobs");
+    const store = getStore({ name: "fieldledger-db", consistency: "strong" });
+    await store.set("pglite.dump", dump);
+  } catch (err) {
+    console.error("[db] PGLite persist skipped:", err);
+  }
+}
+
 async function createPgliteSql(): Promise<Sql> {
   // Embedded Postgres, imported on demand so it never loads on the Neon path.
   // One in-memory instance per process, shared across HMR module instances, so
   // data survives source edits (it resets on dev-server restart).
   globalRef.__pgliteInstance__ ??= (async () => {
     const { PGlite } = await import("@electric-sql/pglite");
-    const pg = new PGlite({
-      parsers: {
-        [OID_INT8]: Number,
-        [OID_DATE]: identity,
-        [OID_INTERVAL]: identity,
-      },
-    });
-    await pg.waitReady;
+    const parsers = {
+      [OID_INT8]: Number,
+      [OID_DATE]: identity,
+      [OID_INTERVAL]: identity,
+    };
+    const loadDataDir = await loadPgliteDump();
+    let pg: import("@electric-sql/pglite").PGlite;
+    try {
+      pg = new PGlite({ loadDataDir, parsers });
+      await pg.waitReady;
+    } catch {
+      pg = new PGlite({ parsers });
+      await pg.waitReady;
+    }
     await pg.exec(
       "create table if not exists _migrations (name text primary key, applied_at timestamptz not null default now())",
     );
@@ -135,7 +208,8 @@ async function createPgliteSql(): Promise<Sql> {
   // auth schema under migrations/auth/ stays out. Runs once per module instance
   // — so an HMR reload after adding a migration file applies it live — with
   // passes serialized on a global chain so concurrent callers never
-  // double-apply.
+  // double-apply. Accountability + office-sync live in 0006/0007.
+
   const migrate = async (): Promise<void> => {
     const migrations = import.meta.glob("/migrations/*.sql", {
       query: "?raw",
@@ -160,9 +234,11 @@ async function createPgliteSql(): Promise<Sql> {
     .then(migrate);
   globalRef.__pgliteMigrateChain__ = pass;
   await pass;
+  schedulePglitePersist(pg);
 
   return toSql(async <T>(text: string, params: unknown[]) => {
     const result = await pg.query<T>(text, params);
+    if (!/^\s*select\b/i.test(text)) schedulePglitePersist(pg);
     return result.rows;
   });
 }
@@ -176,7 +252,8 @@ async function createSql(): Promise<Sql> {
         "or a server route loader, never from client code.",
     );
   }
-  return dbSource === "neon" ? createNeonSql() : createPgliteSql();
+  if (currentDbSource() === "neon") return createNeonSql();
+  return createPgliteSql();
 }
 
 /**
@@ -200,7 +277,7 @@ export function getSql(): Promise<Sql> {
  * Kysely dialect). Throws when `DATABASE_URL` is set (that path uses Neon).
  */
 export async function getPglite(): Promise<import("@electric-sql/pglite").PGlite> {
-  if (dbSource !== "pglite") {
+  if (currentDbSource() !== "pglite") {
     throw new Error("getPglite() is only available on the PGLite fallback (no DATABASE_URL)");
   }
   await getSql();
@@ -220,19 +297,18 @@ export async function getPglite(): Promise<import("@electric-sql/pglite").PGlite
  * module kick it off immediately (see bottom of file).
  */
 export function ensureDbReady(): Promise<void> {
-  if (dbSource !== "pglite") return Promise.resolve();
+  if (currentDbSource() !== "pglite") return Promise.resolve();
   return getSql().then(() => undefined);
 }
 
-// Server-only eager start: kick PGLite bootstrap as soon as this module loads in
-// Node. Client bundles never hit this path (`getSql` throws in the browser).
+// Preview-only eager start. On Netlify/Vercel, PGLite boots lazily on first query
+// so a missing WASM/blobs context cannot take down the whole site at import time.
 const globalBoot = globalThis as typeof globalThis & {
   __pgBootstrapPromise__?: Promise<void>;
 };
-if (typeof window === "undefined" && dbSource === "pglite") {
+if (typeof window === "undefined" && !isServerlessRuntime() && currentDbSource() === "pglite") {
   globalBoot.__pgBootstrapPromise__ ??= ensureDbReady().catch((err) => {
     globalBoot.__pgBootstrapPromise__ = undefined;
     console.error("[db] PGLite bootstrap failed:", err);
-    throw err;
   });
 }

@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
-import { authMiddleware } from "@/lib/auth/middleware";
+import { authMiddleware } from "@/lib/field/shop-middleware";
 import { getSql } from "@/lib/db";
+import { newId } from "@/lib/utils";
 import type { Role } from "./types";
 import {
   addAdminEmail,
@@ -11,21 +12,111 @@ import {
   verifyAdminCode,
   writeSetting,
 } from "./admin-auth.server";
-import { assertAdmin, bootstrapProfile, writeAudit } from "./session.server";
+import { assertAdmin, requireProfile, writeAudit } from "./session.server";
+import { verifyUnlockCode } from "./trial.server";
+import {
+  setupOfficeLogin,
+  signInWithPin,
+  shopLoginStatus,
+  clearShopSession,
+  setEmployeePin,
+} from "./shop-session.server";
 
 async function ready(userId: string) {
-  const sql = await getSql();
-  const users = await sql.query<{ id: string; name: string; email: string }>(
-    `select id, name, email from "user" where id = $1`,
-    [userId],
-  );
-  const u = users[0];
-  return bootstrapProfile({
-    userId,
-    email: u?.email ?? null,
-    name: u?.name ?? null,
-  });
+  return requireProfile(userId);
 }
+
+export const officeLogin = createServerFn({ method: "POST" })
+  .validator((d: { username: string; password: string }) => d)
+  .handler(async ({ data }) => {
+    await signInWithPin(data.username, data.password);
+    return { ok: true as const };
+  });
+
+export const shopStatus = createServerFn({ method: "GET" }).handler(async () => shopLoginStatus());
+
+export const setupShopLogin = createServerFn({ method: "POST" })
+  .validator((d: {
+    username: string;
+    pin: string;
+    name?: string;
+    unlockCode?: string;
+    staff?: { role: Role; username: string; pin: string; name: string }[];
+  }) => d)
+  .handler(async ({ data }) => {
+    await setupOfficeLogin(data);
+    return { ok: true as const };
+  });
+
+export const pinLogin = createServerFn({ method: "POST" })
+  .validator((d: { username: string; pin: string }) => d)
+  .handler(async ({ data }) => {
+    await signInWithPin(data.username, data.pin);
+    return { ok: true as const };
+  });
+
+export const pinLogout = createServerFn({ method: "POST" }).handler(async () => {
+  clearShopSession();
+  return { ok: true as const };
+});
+
+export const assignShopPin = createServerFn({ method: "POST" })
+  .validator((d: { employeeId: string; username: string; pin: string }) => d)
+  .middleware([authMiddleware])
+  .handler(async ({ context, data }) => {
+    const profile = await ready(context.userId);
+    assertAdmin(profile);
+    await setEmployeePin(context.userId, data.employeeId, data.username, data.pin);
+    await writeAudit({
+      companyId: profile.employee.companyId,
+      actorId: profile.employee.id,
+      action: "assign_pin",
+      entityType: "employee",
+      entityId: data.employeeId,
+    });
+    return { ok: true as const };
+  });
+
+export const createShopUser = createServerFn({ method: "POST" })
+  .validator((d: { firstName: string; lastName: string; role: Role; username: string; pin: string }) => d)
+  .middleware([authMiddleware])
+  .handler(async ({ context, data }) => {
+    const profile = await ready(context.userId);
+    assertAdmin(profile);
+    const first = data.firstName.trim();
+    const last = data.lastName.trim();
+    if (!first || !last) throw new Error("Name is required");
+    const sql = await getSql();
+    const id = newId("emp");
+    const lastNum = await sql<{ n: string }>`
+      select employee_number as n from employees where company_id = ${profile.employee.companyId} order by created_at desc limit 1
+    `;
+    const next = Number.parseInt((lastNum[0]?.n ?? "E-300").replace(/\D/g, ""), 10);
+    const number = `E-${Number.isFinite(next) ? next + 1 : 301}`;
+    await sql`
+      insert into employees (
+        id, company_id, user_id, employee_number, first_name, last_name, email, role,
+        department, labor_classification, pay_type, active, account_status
+      ) values (
+        ${id}, ${profile.employee.companyId}, ${id}, ${number},
+        ${first}, ${last}, ${data.username.trim().toLowerCase() + "@maichlesedge.com"}, ${data.role},
+        ${data.role === "technician" ? "Field" : "Operations"},
+        ${data.role === "admin" ? "Administrator" : data.role === "manager" ? "Supervisor" : "Technician"},
+        'hourly', true, 'active'
+      )
+    `;
+    await setEmployeePin(context.userId, id, data.username, data.pin);
+    await writeAudit({
+      companyId: profile.employee.companyId,
+      actorId: profile.employee.id,
+      action: "create_user",
+      entityType: "employee",
+      entityId: id,
+    });
+    const { persistPgliteNow } = await import("@/lib/db");
+    await persistPgliteNow();
+    return { id, employeeNumber: number };
+  });
 
 export const getAdminLoginMeta = createServerFn({ method: "GET" }).handler(async () => {
   const sql = await getSql();
@@ -224,4 +315,30 @@ export const setAccountStatus = createServerFn({ method: "POST" })
       newValue: { accountStatus: data.status },
     });
     return { ok: true };
+  });
+
+export const redeemUnlockCode = createServerFn({ method: "POST" })
+  .validator((d: { code: string }) => d)
+  .middleware([authMiddleware])
+  .handler(async ({ context, data }) => {
+    const profile = await ready(context.userId);
+    const { readSetting } = await import("./admin-auth.server");
+    const stored = await readSetting(profile.employee.companyId, "unlock_code_hash");
+    if (!verifyUnlockCode(data.code, stored)) {
+      throw Object.assign(new Error("That unlock code is not valid"), { status: 403 });
+    }
+    const at = new Date().toISOString();
+    await writeSetting(profile.employee.companyId, "trial_unlocked", "true", context.userId);
+    await writeSetting(profile.employee.companyId, "trial_unlocked_at", at, context.userId);
+    await writeAudit({
+      companyId: profile.employee.companyId,
+      actorId: context.userId,
+      actorName: profile.employee.name,
+      action: "redeem_unlock",
+      entityType: "settings",
+      entityId: "trial_unlocked",
+      reason: "Shop license code accepted",
+    });
+    const next = await ready(context.userId);
+    return { ok: true, trial: next.trial };
   });

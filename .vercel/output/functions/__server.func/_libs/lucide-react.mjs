@@ -105,6 +105,19 @@ var ArrowRight = createLucideIcon("arrow-right", [["path", {
 * This source code is licensed under the ISC license.
 * See the LICENSE file in the root directory of this source tree.
 */
+var Bell = createLucideIcon("bell", [["path", {
+	d: "M10.268 21a2 2 0 0 0 3.464 0",
+	key: "vwvbt9"
+}], ["path", {
+	d: "M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326",
+	key: "11g9vi"
+}]]);
+/**
+* @license lucide-react v0.510.0 - ISC
+*
+* This source code is licensed under the ISC license.
+* See the LICENSE file in the root directory of this source tree.
+*/
 var BookOpen = createLucideIcon("book-open", [["path", {
 	d: "M12 7v14",
 	key: "1akyts"
@@ -164,6 +177,16 @@ var CalendarDays = createLucideIcon("calendar-days", [
 		key: "kzsmim"
 	}]
 ]);
+/**
+* @license lucide-react v0.510.0 - ISC
+*
+* This source code is licensed under the ISC license.
+* See the LICENSE file in the root directory of this source tree.
+*/
+var Check = createLucideIcon("check", [["path", {
+	d: "M20 6 9 17l-5-5",
+	key: "1gmf2c"
+}]]);
 /**
 * @license lucide-react v0.510.0 - ISC
 *
@@ -234,34 +257,6 @@ var Gauge = createLucideIcon("gauge", [["path", {
 	d: "M3.34 19a10 10 0 1 1 17.32 0",
 	key: "19p75a"
 }]]);
-/**
-* @license lucide-react v0.510.0 - ISC
-*
-* This source code is licensed under the ISC license.
-* See the LICENSE file in the root directory of this source tree.
-*/
-var HardHat = createLucideIcon("hard-hat", [
-	["path", {
-		d: "M10 10V5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5",
-		key: "1p9q5i"
-	}],
-	["path", {
-		d: "M14 6a6 6 0 0 1 6 6v3",
-		key: "1hnv84"
-	}],
-	["path", {
-		d: "M4 15v-3a6 6 0 0 1 6-6",
-		key: "9ciidu"
-	}],
-	["rect", {
-		x: "2",
-		y: "15",
-		width: "20",
-		height: "4",
-		rx: "1",
-		key: "g3x8cw"
-	}]
-]);
 /**
 * @license lucide-react v0.510.0 - ISC
 *
@@ -359,6 +354,16 @@ var Menu = createLucideIcon("menu", [
 		key: "1o0s65"
 	}]
 ]);
+/**
+* @license lucide-react v0.510.0 - ISC
+*
+* This source code is licensed under the ISC license.
+* See the LICENSE file in the root directory of this source tree.
+*/
+var MessageSquare = createLucideIcon("message-square", [["path", {
+	d: "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z",
+	key: "1lielz"
+}]]);
 /**
 * @license lucide-react v0.510.0 - ISC
 *
@@ -631,4 +636,4 @@ var X = createLucideIcon("x", [["path", {
 	key: "d8bk6v"
 }]]);
 //#endregion
-export { CalendarDays as C, Activity as E, ChevronLeft as S, ArrowRight as T, LayoutGrid as _, TriangleAlert as a, ClipboardList as b, ShieldAlert as c, Radio as d, Plus as f, MapPin as g, MapPinned as h, Truck as i, Settings as l, Menu as m, Wallet as n, Timer as o, Package as p, Users as r, ShieldCheck as s, X as t, ScrollText as u, HardHat as v, BookOpen as w, ChevronRight as x, Gauge as y };
+export { Check as C, ArrowRight as D, Bell as E, Activity as O, ChevronLeft as S, BookOpen as T, MapPin as _, TriangleAlert as a, ClipboardList as b, ShieldAlert as c, Radio as d, Plus as f, MapPinned as g, Menu as h, Truck as i, Settings as l, MessageSquare as m, Wallet as n, Timer as o, Package as p, Users as r, ShieldCheck as s, X as t, ScrollText as u, LayoutGrid as v, CalendarDays as w, ChevronRight as x, Gauge as y };

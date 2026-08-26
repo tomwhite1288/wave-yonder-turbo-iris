@@ -11,7 +11,10 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppRouteRouteImport } from './routes/app/route'
+import { Route as BookRouteImport } from './routes/book'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as ApiPushRouteImport } from './routes/api/push'
+import { Route as ApiSyncRouteImport } from './routes/api/sync'
 import { Route as AppIndexRouteImport } from './routes/app/index'
 import { Route as AppAuditRouteImport } from './routes/app/audit'
 import { Route as AppCodesRouteImport } from './routes/app/codes'
@@ -42,9 +45,24 @@ const AppRouteRoute = AppRouteRouteImport.update({
   path: '/app',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BookRoute = BookRouteImport.update({
+  id: '/book',
+  path: '/book',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPushRoute = ApiPushRouteImport.update({
+  id: '/api/push',
+  path: '/api/push',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSyncRoute = ApiSyncRouteImport.update({
+  id: '/api/sync',
+  path: '/api/sync',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppIndexRoute = AppIndexRouteImport.update({
@@ -147,7 +165,10 @@ const ApiIntegrationTicketsTicketNumberRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteRouteWithChildren
+  '/book': typeof BookRoute
   '/login': typeof LoginRoute
+  '/api/push': typeof ApiPushRoute
+  '/api/sync': typeof ApiSyncRoute
   '/app/audit': typeof AppAuditRoute
   '/app/codes': typeof AppCodesRoute
   '/app/efficiency': typeof AppEfficiencyRoute
@@ -170,7 +191,10 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/book': typeof BookRoute
   '/login': typeof LoginRoute
+  '/api/push': typeof ApiPushRoute
+  '/api/sync': typeof ApiSyncRoute
   '/app/audit': typeof AppAuditRoute
   '/app/codes': typeof AppCodesRoute
   '/app/efficiency': typeof AppEfficiencyRoute
@@ -195,7 +219,10 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/app': typeof AppRouteRouteWithChildren
+  '/book': typeof BookRoute
   '/login': typeof LoginRoute
+  '/api/push': typeof ApiPushRoute
+  '/api/sync': typeof ApiSyncRoute
   '/app/audit': typeof AppAuditRoute
   '/app/codes': typeof AppCodesRoute
   '/app/efficiency': typeof AppEfficiencyRoute
@@ -221,7 +248,10 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/app'
+    | '/book'
     | '/login'
+    | '/api/push'
+    | '/api/sync'
     | '/app/audit'
     | '/app/codes'
     | '/app/efficiency'
@@ -244,7 +274,10 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/book'
     | '/login'
+    | '/api/push'
+    | '/api/sync'
     | '/app/audit'
     | '/app/codes'
     | '/app/efficiency'
@@ -268,7 +301,10 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/app'
+    | '/book'
     | '/login'
+    | '/api/push'
+    | '/api/sync'
     | '/app/audit'
     | '/app/codes'
     | '/app/efficiency'
@@ -293,7 +329,10 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRouteRoute: typeof AppRouteRouteWithChildren
+  BookRoute: typeof BookRoute
   LoginRoute: typeof LoginRoute
+  ApiPushRoute: typeof ApiPushRoute
+  ApiSyncRoute: typeof ApiSyncRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiIntegrationTicketsRoute: typeof ApiIntegrationTicketsRouteWithChildren
 }
@@ -314,11 +353,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/book': {
+      id: '/book'
+      path: '/book'
+      fullPath: '/book'
+      preLoaderRoute: typeof BookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/push': {
+      id: '/api/push'
+      path: '/api/push'
+      fullPath: '/api/push'
+      preLoaderRoute: typeof ApiPushRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/sync': {
+      id: '/api/sync'
+      path: '/api/sync'
+      fullPath: '/api/sync'
+      preLoaderRoute: typeof ApiSyncRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/app/': {
@@ -525,7 +585,10 @@ const ApiIntegrationTicketsRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRouteRoute: AppRouteRouteWithChildren,
+  BookRoute: BookRoute,
   LoginRoute: LoginRoute,
+  ApiPushRoute: ApiPushRoute,
+  ApiSyncRoute: ApiSyncRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiIntegrationTicketsRoute: ApiIntegrationTicketsRouteWithChildren,
 }

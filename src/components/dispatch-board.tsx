@@ -9,9 +9,10 @@ import { LiveMap } from "@/components/live-map";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { Spinner } from "@/components/spinner";
 import { formatClock, initials, todayIso } from "@/lib/utils";
 import { cn } from "@/lib/utils";
-import type { LiveTechRow, TicketSummary } from "@/lib/field/types";
+import type { JobKind, LiveTechRow, TicketSummary } from "@/lib/field/types";
 
 type Span = "shift" | "day" | "week";
 type WoTab = "unassigned" | "assigned" | "completed";
@@ -53,7 +54,7 @@ export function DispatchBoard() {
   const desk = useQuery({
     queryKey: ["dispatch"],
     queryFn: () => getDispatchDesk(),
-    refetchInterval: 15_000,
+    refetchInterval: 8_000,
   });
   const [span, setSpan] = useState<Span>("shift");
   const [date, setDate] = useState(() => todayIso());
@@ -71,7 +72,7 @@ export function DispatchBoard() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  if (desk.isLoading) return <div className="h-[32rem] animate-pulse rounded-xl bg-surface" />;
+  if (desk.isLoading) return <Spinner label="Opening dispatch board…" />;
   if (desk.error) return <p className="text-sm text-danger">{desk.error.message}</p>;
   const data = desk.data!;
   const tz = data.profile.settings.timezone;
@@ -257,11 +258,14 @@ export function DispatchBoard() {
             </table>
           </div>
         </section>
-        {data.profile.settings.dispatchShowMap ? (
-          <section className="min-h-56 overflow-hidden rounded-lg bg-surface shadow-[var(--shadow-border)]">
-            <LiveMap rows={data.rows} compact />
-          </section>
-        ) : null}
+        <section className="min-h-56 overflow-hidden rounded-lg bg-surface shadow-[var(--shadow-border)]">
+          <LiveMap
+            rows={data.rows}
+            officeLat={data.profile.settings.officeLat}
+            officeLng={data.profile.settings.officeLng}
+            compact
+          />
+        </section>
       </div>
 
       {createOpen ? (
@@ -410,6 +414,7 @@ function CreateOrder({
   const [task, setTask] = useState("");
   const [tech, setTech] = useState("");
   const [start, setStart] = useState("08:00");
+  const [jobKind, setJobKind] = useState<JobKind>("service");
   const mut = useMutation({
     mutationFn: createWorkOrder,
     onSuccess: (res) => {
@@ -427,6 +432,20 @@ function CreateOrder({
         <Input placeholder="Address" value={address} onChange={(e) => setAddress(e.target.value)} />
         <Input placeholder="City" value={city} onChange={(e) => setCity(e.target.value)} />
         <Input placeholder="Task / work detail" value={task} onChange={(e) => setTask(e.target.value)} />
+        <div className="grid grid-cols-3 gap-2">
+          {(["service", "callback", "warranty"] as JobKind[]).map((k) => (
+            <button
+              key={k}
+              type="button"
+              className={`h-11 rounded-md text-sm capitalize ${
+                jobKind === k ? "bg-primary text-primary-fg" : "bg-elevated text-muted"
+              }`}
+              onClick={() => setJobKind(k)}
+            >
+              {k}
+            </button>
+          ))}
+        </div>
         <div className="grid grid-cols-2 gap-2">
           <Input type="time" value={start} onChange={(e) => setStart(e.target.value)} />
           <select className="h-11 rounded-md border border-border bg-elevated px-3 text-sm" value={tech} onChange={(e) => setTech(e.target.value)}>
@@ -448,6 +467,7 @@ function CreateOrder({
                   appointmentStart: `${date}T${start}:00-04:00`,
                   technicianId: tech || null,
                   workDetail: task,
+                  jobKind,
                 },
               })
             }

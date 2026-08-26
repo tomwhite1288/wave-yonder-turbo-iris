@@ -1,0 +1,25 @@
+{
+  "name": "Maichle's Code Book",
+  "short_name": "Code Book",
+  "description": "Offline HVAC and plumbing code lookup for the truck.",
+  "start_url": "/book",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b0e11",
+  "theme_color": "#0b0e11",
+  "icons": [
+    {
+      "src": "/__grok/icon-180.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

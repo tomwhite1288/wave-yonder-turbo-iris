@@ -1,9 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
-import { authMiddleware } from "@/lib/auth/middleware";
-import { getSql } from "@/lib/db";
-import { newId, num, todayIso } from "@/lib/utils";
-import { efficiencyForEmployee, payrollForEmployee } from "./calc";
-import { hoursFromEntries, loadEntries } from "./queries.server";
+import { authMiddleware } from "@/lib/field/shop-middleware";
+import { getSql, persistPgliteNow } from "@/lib/db";
+import { newId, num } from "@/lib/utils";
+import { efficiencyForEmployee, payrollForEmployee, weekRange } from "./calc";
+import { hoursFromEntries, loadEntries, loadTickets } from "./queries.server";
 import {
   assertAdmin,
   assertManager,
@@ -12,6 +12,7 @@ import {
   writeAudit,
 } from "./session.server";
 import { hydrateToday } from "./hydrate.server";
+import { reconcileWeek } from "./reconcile.server";
 import type { CodeBookEntry, CodeBookKind, CodeImportRow, ExceptionView, PayrollRow, EfficiencyRow, AuditView } from "./types";
 
 async function mgr(userId: string) {
@@ -19,19 +20,6 @@ async function mgr(userId: string) {
   await hydrateToday(profile.employee.companyId);
   assertManager(profile);
   return profile;
-}
-
-function weekRange(timezone: string) {
-  const today = todayIso(timezone);
-  const d = new Date(`${today}T12:00:00-04:00`);
-  const day = d.getDay();
-  const mondayOffset = day === 0 ? -6 : 1 - day;
-  const monday = new Date(d);
-  monday.setDate(d.getDate() + mondayOffset);
-  const sunday = new Date(monday);
-  sunday.setDate(monday.getDate() + 6);
-  const iso = (x: Date) => x.toISOString().slice(0, 10);
-  return { from: iso(monday), to: iso(sunday), today };
 }
 
 export const listTimecards = createServerFn({ method: "GET" })
@@ -156,6 +144,17 @@ export const listExceptions = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const profile = await requireProfile(context.userId);
     await hydrateToday(profile.employee.companyId);
+    const { from, to } = weekRange(profile.settings.timezone);
+    try {
+      await reconcileWeek({
+        companyId: profile.employee.companyId,
+        settings: profile.settings,
+        fromIso: from,
+        toIso: to,
+      });
+    } catch {
+      /* recon is best-effort — listing still works if a new table is mid-migrate */
+    }
     const sql = await getSql();
     const techFilter = profile.employee.role === "technician" ? profile.employee.id : null;
     const rows = techFilter
@@ -215,7 +214,7 @@ export const listExceptions = createServerFn({ method: "GET" })
       status: r.status,
       createdAt: r.created_at,
     }));
-    return { profile, items };
+    return { profile, items, from, to };
   });
 
 export const resolveException = createServerFn({ method: "POST" })
@@ -256,6 +255,7 @@ export const getPayroll = createServerFn({ method: "GET" })
       toIso: `${to}T23:59:59-04:00`,
     });
     const sql = await getSql();
+    const tickets = await loadTickets(profile.employee.companyId, profile.settings.gpsRadiusFt);
     const revenue = await sql<{ technician_id: string; labor: number | string; parts: number | string }>`
       select technician_id, coalesce(sum(labor_amount),0) as labor, coalesce(sum(parts_amount),0) as parts
       from tickets
@@ -267,7 +267,11 @@ export const getPayroll = createServerFn({ method: "GET" })
     const revMap = new Map(revenue.map((r) => [r.technician_id, { labor: num(r.labor), parts: num(r.parts) }]));
     const rows: PayrollRow[] = people.map((employee) => {
       const hours = hoursFromEntries(entries.filter((e) => e.employeeId === employee.id));
-      const rev = revMap.get(employee.id) ?? { labor: 0, parts: 0 };
+      const jobs = tickets.filter((t) => t.technicianId === employee.id);
+      const rev = revMap.get(employee.id) ?? {
+        labor: jobs.reduce((s, t) => s + t.laborAmount, 0),
+        parts: jobs.reduce((s, t) => s + t.partsAmount, 0),
+      };
       return payrollForEmployee({
         employee,
         hours,
@@ -293,6 +297,7 @@ export const getEfficiency = createServerFn({ method: "GET" })
       toIso: `${to}T23:59:59-04:00`,
     });
     const sql = await getSql();
+    const tickets = await loadTickets(profile.employee.companyId, profile.settings.gpsRadiusFt);
     const revenue = await sql<{ technician_id: string; labor: number | string; parts: number | string }>`
       select technician_id, coalesce(sum(labor_amount),0) as labor, coalesce(sum(parts_amount),0) as parts
       from tickets
@@ -310,7 +315,12 @@ export const getEfficiency = createServerFn({ method: "GET" })
     const revMap = new Map(revenue.map((r) => [r.technician_id, { labor: num(r.labor), parts: num(r.parts) }]));
     const rows: EfficiencyRow[] = people.map((employee) => {
       const hours = hoursFromEntries(entries.filter((e) => e.employeeId === employee.id));
-      const rev = revMap.get(employee.id) ?? { labor: 0, parts: 0 };
+      const jobs = tickets.filter((t) => t.technicianId === employee.id);
+      const soldHours = jobs.reduce((s, t) => s + t.expectedHours, 0);
+      const rev = revMap.get(employee.id) ?? {
+        labor: jobs.reduce((s, t) => s + t.laborAmount, 0),
+        parts: jobs.reduce((s, t) => s + t.partsAmount, 0),
+      };
       const available = profile.settings.efficiencyAvailableSource === "clock"
         ? hours.worked / 60
         : schedMap.get(employee.id) ?? 42.5;
@@ -318,12 +328,46 @@ export const getEfficiency = createServerFn({ method: "GET" })
         employee,
         hours,
         availableHours: available,
+        soldHours,
         settings: profile.settings,
         laborRevenue: rev.labor,
         partsRevenue: rev.parts,
       });
     });
-    return { profile, rows, from, to };
+    const threshold = (profile.settings.efficiencyAlertPct || 80) / 100;
+    try {
+      await sql.query(`create table if not exists shop_alerts (
+        id text primary key, company_id text not null, employee_id text, kind text not null,
+        title text not null, body text not null, created_at timestamptz not null default now(), read_at timestamptz
+      )`);
+    } catch {
+      /* */
+    }
+    for (const row of rows) {
+      if (row.availableHours < 1) continue;
+      if (row.billableEfficiency >= threshold) continue;
+      try {
+        const existing = await sql<{ id: string }>`
+          select id from shop_alerts
+          where employee_id = ${row.employee.id}
+            and kind = 'efficiency'
+            and created_at::date = current_date
+          limit 1
+        `;
+        if (existing[0]) continue;
+        await sql`
+          insert into shop_alerts (id, company_id, employee_id, kind, title, body)
+          values (
+            ${newId("al")}, ${profile.employee.companyId}, ${row.employee.id}, 'efficiency',
+            ${`${row.employee.name} efficiency ${Math.round(row.billableEfficiency * 100)}%`},
+            ${`Sold ${row.soldHours.toFixed(1)}h ÷ available ${row.availableHours.toFixed(1)}h is below the ${profile.settings.efficiencyAlertPct}% target.`}
+          )
+        `;
+      } catch {
+        /* shop_alerts may not exist yet on an old dump */
+      }
+    }
+    return { profile, rows, from, to, thresholdPct: profile.settings.efficiencyAlertPct };
   });
 
 export const listCodes = createServerFn({ method: "GET" })
@@ -441,7 +485,7 @@ export const importCodes = createServerFn({ method: "POST" })
     const profile = await mgr(context.userId);
     assertAdmin(profile);
     if (!data.rows.length) throw new Error("No rows to import");
-    if (data.rows.length > 800) throw new Error("Import is limited to 800 rows at a time");
+    if (data.rows.length > 2000) throw new Error("Import is limited to 2,000 rows at a time");
     const sql = await getSql();
     let upserted = 0;
     let skipped = 0;
@@ -522,6 +566,12 @@ export const saveSettings = createServerFn({ method: "POST" })
       "gps_radius_ft",
       "gps_interval_sec",
       "gps_grace_min",
+      "gps_confirm_min",
+      "gps_fail_flags_work",
+      "pay_sold_hours",
+      "efficiency_alert_pct",
+      "pay_conditions",
+      "weekly_email_to",
       "gps_accuracy_threshold_m",
       "approaching_multiplier",
       "exception_tolerance_min",
@@ -543,7 +593,34 @@ export const saveSettings = createServerFn({ method: "POST" })
       "signup_requires_approval",
       "mobile_dock",
       "role_nav",
+      "office_name",
+      "office_address",
+      "office_city",
+      "office_state",
+      "office_zip",
+      "office_lat",
+      "office_lng",
+      "office_radius_ft",
+      "paid_kinds",
+      "require_gps_for_pay",
+      "payroll_fed_pct",
+      "payroll_state_pct",
+      "payroll_fica_pct",
+      "office_sync_url",
+      "office_sync_key",
+      "trial_days",
+      "setup_complete",
+      "demo_locked",
     ]);
+    if ("trial_days" in data && profile.trial.locked) {
+      throw new Error("Enter the shop unlock code before changing trial length");
+    }
+    if ("trial_days" in data) {
+      const days = Number(data.trial_days);
+      if (!Number.isFinite(days) || days < 0 || days > 3650) {
+        throw new Error("Trial days must be between 0 and 3650");
+      }
+    }
     for (const [key, value] of Object.entries(data)) {
       if (!allowed.has(key)) continue;
       await sql`
@@ -560,6 +637,7 @@ export const saveSettings = createServerFn({ method: "POST" })
       entityType: "settings",
       newValue: data,
     });
+    await persistPgliteNow();
     return { ok: true };
   });
 

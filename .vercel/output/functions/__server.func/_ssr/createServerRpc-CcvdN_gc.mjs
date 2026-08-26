@@ -1,4 +1,4 @@
-import { i as TSS_SERVER_FUNCTION } from "./ssr.mjs";
+import { t as TSS_SERVER_FUNCTION } from "./ssr2.mjs";
 //#region node_modules/.nitro/vite/services/ssr/assets/createServerRpc-CcvdN_gc.js
 var createServerRpc = (serverFnMeta, splitImportFn) => {
 	const url = "/_serverFn/" + serverFnMeta.id;

@@ -28,7 +28,13 @@ export const NAV_CATALOG: NavItem[] = [
   { id: "settings", to: "/app/settings", label: "Settings", dockLabel: "Setup", roles: ["admin"] },
 ];
 
-export const DEFAULT_DOCK: NavId[] = ["field", "jobs", "timecards", "codes", "parts"];
+export const DEFAULT_DOCK: NavId[] = ["field", "jobs", "timecards", "codes", "exceptions"];
+
+export const DEFAULT_DOCK_BY_ROLE: Record<Role, NavId[]> = {
+  technician: ["field", "jobs", "timecards", "codes", "exceptions"],
+  manager: ["board", "exceptions", "efficiency", "jobs", "timecards"],
+  admin: ["board", "exceptions", "efficiency", "people", "settings"],
+};
 
 export const DEFAULT_ROLE_NAV: Record<Role, NavId[]> = {
   admin: NAV_CATALOG.map((n) => n.id),
@@ -83,7 +89,9 @@ export function dockForRole(
   roleNav: Partial<Record<Role, NavId[]>> | undefined,
 ): NavItem[] {
   const allowed = new Set(navForRole(role, roleNav).map((n) => n.id));
-  const ids = (mobileDock?.length ? mobileDock : DEFAULT_DOCK).filter((id) => allowed.has(id)).slice(0, 5);
+  const ids = (role === "technician" && mobileDock?.length ? mobileDock : DEFAULT_DOCK_BY_ROLE[role] ?? DEFAULT_DOCK)
+    .filter((id) => allowed.has(id))
+    .slice(0, 5);
   const byId = new Map(NAV_CATALOG.map((n) => [n.id, n]));
   return ids.map((id) => byId.get(id)).filter((n): n is NavItem => n != null);
 }

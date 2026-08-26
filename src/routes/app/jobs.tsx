@@ -3,12 +3,13 @@ import { useQuery } from "@tanstack/react-query";
 import { listJobs } from "@/lib/field/api";
 import { formatClock, formatHours } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { Spinner } from "@/components/spinner";
 
 export const Route = createFileRoute("/app/jobs")({ component: JobsPage });
 
 function JobsPage() {
   const q = useQuery({ queryKey: ["jobs"], queryFn: () => listJobs() });
-  if (q.isLoading) return <div className="h-64 animate-pulse rounded-xl bg-surface" />;
+  if (q.isLoading) return <Spinner label="Loading jobs…" />;
   if (q.error) return <p className="text-sm text-danger">{q.error.message}</p>;
   const { tickets, profile } = q.data!;
   const tz = profile.settings.timezone;
@@ -29,9 +30,13 @@ function JobsPage() {
           >
             <div className="flex items-start justify-between gap-2">
               <div className="font-mono text-primary">#{t.ticketNumber}</div>
-              <Badge tone={t.status === "in_progress" ? "ok" : t.status === "complete" ? "neutral" : "info"}>
-                {t.status.replaceAll("_", " ")}
-              </Badge>
+              <div className="flex gap-1">
+                {t.jobKind === "callback" ? <Badge tone="warn">Callback</Badge> : null}
+                {t.jobKind === "warranty" ? <Badge tone="info">Warranty</Badge> : null}
+                <Badge tone={t.status === "in_progress" ? "ok" : t.status === "complete" ? "neutral" : "info"}>
+                  {t.status.replaceAll("_", " ")}
+                </Badge>
+              </div>
             </div>
             <div className="mt-1 font-medium">{t.customerName}</div>
             <div className="text-sm text-muted">

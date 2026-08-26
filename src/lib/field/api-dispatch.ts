@@ -1,10 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
-import { authMiddleware } from "@/lib/auth/middleware";
+import { authMiddleware } from "@/lib/field/shop-middleware";
 import { getSql } from "@/lib/db";
 import { newId } from "@/lib/utils";
 import { assertActive, assertManager, listEmployees, requireProfile, writeAudit } from "./session.server";
 import { hydrateToday } from "./hydrate.server";
 import { liveBoard, loadTickets } from "./queries.server";
+import type { JobKind } from "./types";
 
 async function desk(userId: string) {
   const profile = await requireProfile(userId);
@@ -50,6 +51,7 @@ type WorkOrderInput = {
   notes?: string;
   lat?: number | null;
   lng?: number | null;
+  jobKind?: JobKind;
 };
 
 export const createWorkOrder = createServerFn({ method: "POST" })
@@ -77,11 +79,14 @@ export const createWorkOrder = createServerFn({ method: "POST" })
     const id = newId("tkt");
     const techId = data.technicianId || null;
     const status = techId ? "scheduled" : "scheduled";
+    const jobKind: JobKind =
+      data.jobKind === "callback" || data.jobKind === "warranty" ? data.jobKind : "service";
+    await sql.query("alter table tickets add column if not exists job_kind text not null default 'service'");
     await sql`
       insert into tickets (
         id, company_id, ticket_number, customer_name, address_line, city, state, zip,
         lat, lng, gps_radius_ft, scheduled_start, scheduled_end, technician_id,
-        status, source, notes, work_detail, created_by
+        status, source, notes, work_detail, job_kind, created_by
       ) values (
         ${id}, ${profile.employee.companyId}, ${number}, ${customer},
         ${data.addressLine.trim() || "Address TBD"}, ${data.city?.trim() || "New Castle"},
@@ -89,7 +94,7 @@ export const createWorkOrder = createServerFn({ method: "POST" })
         ${data.lat ?? null}, ${data.lng ?? null}, ${profile.settings.gpsRadiusFt},
         ${data.appointmentStart ?? null}, ${data.appointmentEnd ?? null}, ${techId},
         ${status}, 'manual', ${data.notes?.trim() || null}, ${data.workDetail?.trim() || null},
-        ${context.userId}
+        ${jobKind}, ${context.userId}
       )
     `;
     await writeAudit({
@@ -126,6 +131,24 @@ export const assignWorkOrder = createServerFn({ method: "POST" })
         updated_by = ${context.userId}
       where id = ${data.ticketId}
     `;
+    if (data.technicianId) {
+      try {
+        await sql.query(`create table if not exists shop_alerts (
+          id text primary key, company_id text not null, employee_id text, kind text not null,
+          title text not null, body text not null, created_at timestamptz not null default now(), read_at timestamptz
+        )`);
+        await sql`
+          insert into shop_alerts (id, company_id, employee_id, kind, title, body)
+          values (
+            ${newId("al")}, ${profile.employee.companyId}, ${data.technicianId}, 'ticket',
+            'Ticket assigned',
+            ${`A work order was assigned to you.`}
+          )
+        `;
+      } catch {
+        /* alerts are best-effort */
+      }
+    }
     await writeAudit({
       companyId: profile.employee.companyId,
       actorId: context.userId,
@@ -153,5 +176,21 @@ export const setWorkOrderStatus = createServerFn({ method: "POST" })
       where id = ${data.ticketId} and company_id = ${profile.employee.companyId}
     `;
     return { ok: true };
+  });
+
+export const setTicketJobKind = createServerFn({ method: "POST" })
+  .validator((d: { ticketId: string; jobKind: JobKind }) => d)
+  .middleware([authMiddleware])
+  .handler(async ({ context, data }) => {
+    const profile = await desk(context.userId);
+    const kind: JobKind =
+      data.jobKind === "callback" || data.jobKind === "warranty" ? data.jobKind : "service";
+    const sql = await getSql();
+    await sql.query("alter table tickets add column if not exists job_kind text not null default 'service'");
+    await sql`
+      update tickets set job_kind = ${kind}, updated_at = now(), updated_by = ${context.userId}
+      where id = ${data.ticketId} and company_id = ${profile.employee.companyId}
+    `;
+    return { ok: true as const };
   });
 

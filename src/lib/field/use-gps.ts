@@ -2,6 +2,29 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 export type Fix = { lat: number; lng: number; accuracy: number };
 
+const QUEUE_KEY = "fl_gps_queue";
+
+export function queueGpsFix(fix: Fix & { ticketId?: string }) {
+  try {
+    const raw = localStorage.getItem(QUEUE_KEY);
+    const q: Array<Fix & { ticketId?: string; at: number }> = raw ? JSON.parse(raw) : [];
+    q.push({ ...fix, at: Date.now() });
+    localStorage.setItem(QUEUE_KEY, JSON.stringify(q.slice(-50)));
+  } catch {
+    /* private mode */
+  }
+}
+
+export function takeQueuedGps(): Array<Fix & { ticketId?: string }> {
+  try {
+    const raw = localStorage.getItem(QUEUE_KEY);
+    localStorage.removeItem(QUEUE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
 export function useGps(enabled: boolean, intervalSec: number, onPing?: (fix: Fix) => void) {
   const [fix, setFix] = useState<Fix | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -25,20 +48,22 @@ export function useGps(enabled: boolean, intervalSec: number, onPing?: (fix: Fix
         setFix(next);
         setPermission("granted");
         setError(null);
+        queueGpsFix(next);
         onPingRef.current?.(next);
       },
       (err) => {
         setPermission("denied");
         setError(err.message);
       },
-      { enableHighAccuracy: true, timeout: 12_000, maximumAge: 5_000 },
+      { enableHighAccuracy: true, timeout: 20_000, maximumAge: 30_000 },
     );
   }, []);
 
   useEffect(() => {
     if (!enabled) return;
     request();
-    const id = window.setInterval(request, Math.max(10, intervalSec) * 1000);
+    const ms = Math.max(60, intervalSec) * 1000;
+    const id = window.setInterval(request, ms);
     return () => window.clearInterval(id);
   }, [enabled, intervalSec, request]);
 

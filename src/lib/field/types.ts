@@ -1,6 +1,8 @@
 export type Role = "admin" | "manager" | "technician";
 export type AccountStatus = "active" | "pending" | "disabled";
+export type JobKind = "service" | "callback" | "warranty";
 export type CodeBookKind = "invoice" | "plumbing" | "hvac";
+
 export type ThemeId = "stock" | "field" | "night" | "light";
 export type LayoutMode = "auto" | "desktop" | "mobile";
 export type NavId =
@@ -26,18 +28,33 @@ export type GpsStatus =
   | "ON_SITE"
   | "WORKING"
   | "LEFT_SITE"
+  | "AT_OFFICE"
   | "OFFLINE";
 
-export type TimeKind = "work" | "break" | "travel" | "admin" | "non_billable";
+export type TimeKind = "work" | "show" | "travel" | "office" | "break" | "admin" | "non_billable";
+export type PaidKind = "work" | "show" | "travel" | "office";
+
+export type PayCondition = {
+  requireGps: boolean;
+  flagOnFail: boolean;
+  requireApproval: boolean;
+};
+export type PayConditions = Record<PaidKind, PayCondition>;
+
 
 export type ExceptionKind =
   | "under_billed"
   | "over_billed"
   | "missing_code"
   | "invalid_code"
+  | "missing_time"
+  | "unpaid_claim"
   | "payroll"
   | "left_site"
   | "gps_mismatch"
+  | "office_mismatch"
+  | "travel_mismatch"
+  | "parts_over_allowance"
   | "late"
   | "early"
   | "overtime"
@@ -61,12 +78,19 @@ export type Employee = {
   active: boolean;
   accountStatus: AccountStatus;
   hourlyWage: number;
+  username?: string | null;
 };
 
 export type CompanySettings = {
   gpsRadiusFt: number;
   gpsIntervalSec: number;
   gpsGraceMin: number;
+  gpsConfirmMin: number;
+  gpsFailFlagsWork: boolean;
+  paySoldHours: boolean;
+  efficiencyAlertPct: number;
+  payConditions: PayConditions;
+  weeklyEmailTo: string;
   gpsAccuracyThresholdM: number;
   approachingMultiplier: number;
   exceptionToleranceMin: number;
@@ -94,6 +118,36 @@ export type CompanySettings = {
   signupRequiresApproval: boolean;
   mobileDock: NavId[];
   roleNav: Partial<Record<Role, NavId[]>>;
+  officeName: string;
+  officeAddress: string;
+  officeCity: string;
+  officeState: string;
+  officeZip: string;
+  officeLat: number;
+  officeLng: number;
+  officeRadiusFt: number;
+  paidKinds: PaidKind[];
+  requireGpsForPay: boolean;
+  payrollFedPct: number;
+  payrollStatePct: number;
+  payrollFicaPct: number;
+  officeSyncUrl: string;
+  officeSyncKey: string;
+  trialDays: number;
+  trialStartedAt: string;
+  trialUnlocked: boolean;
+  trialUnlockedAt: string | null;
+  demoLocked?: boolean;
+};
+
+export type TrialStatus = {
+  enforced: boolean;
+  unlocked: boolean;
+  startedAt: string;
+  endsAt: string;
+  trialDays: number;
+  daysLeft: number;
+  locked: boolean;
 };
 
 export type SessionProfile = {
@@ -102,6 +156,7 @@ export type SessionProfile = {
   displayName: string | null;
   employee: Employee;
   settings: CompanySettings;
+  trial: TrialStatus;
 };
 
 export type TicketSummary = {
@@ -126,6 +181,7 @@ export type TicketSummary = {
   status: string;
   workDetail: string | null;
   notes: string | null;
+  jobKind: JobKind;
   codes: { code: string; hoursExpected: number; laborValue: number }[];
   expectedHours: number;
 };
@@ -158,6 +214,9 @@ export type TimeEntryView = {
   clockOut: string | null;
   billableMinutes: number;
   nonBillableMinutes: number;
+  paidMinutes: number;
+  unpaidMinutes: number;
+  gpsBacked: boolean;
   gpsStatus: string | null;
   clockInDistanceFt: number | null;
   notes: string | null;
@@ -166,6 +225,8 @@ export type TimeEntryView = {
   approvalStatus: string;
   originalClockIn: string | null;
   originalClockOut: string | null;
+  gpsConfirmStatus: string | null;
+  gpsConfirmUntil: string | null;
 };
 
 export type ExceptionView = {
@@ -244,13 +305,22 @@ export type PayrollRow = {
   regularHours: number;
   overtimeHours: number;
   doubleTimeHours: number;
+  paidHours: number;
+  unpaidHours: number;
+  travelHours: number;
+  showHours: number;
+  workHours: number;
+  officeHours: number;
   grossRegular: number;
   grossOvertime: number;
   totalWages: number;
+  taxFed: number;
+  taxState: number;
+  taxFica: number;
+  netPay: number;
   billableHours: number;
   nonBillableHours: number;
   adminHours: number;
-  travelHours: number;
   laborRevenue: number;
   partsRevenue: number;
   totalRevenue: number;
@@ -263,12 +333,19 @@ export type EfficiencyRow = {
   employee: Employee;
   availableHours: number;
   actualWorkedHours: number;
+  soldHours: number;
+  jobHours: number;
+  driveHours: number;
+  officeHours: number;
+  paidHours: number;
+  unpaidHours: number;
   billableHours: number;
   nonBillableHours: number;
   adminHours: number;
   travelHours: number;
   fieldHours: number;
   billableEfficiency: number;
+  jobEfficiency: number;
   fieldUtilization: number;
   laborRevenue: number;
   partsRevenue: number;
@@ -296,6 +373,27 @@ export type DayHours = {
   nonBillable: number;
   admin: number;
   travel: number;
+  show: number;
+  office: number;
   breakMin: number;
   worked: number;
+  paid: number;
+  unpaid: number;
+};
+
+export type JobReceipt = {
+  id: string;
+  ticketId: string;
+  employeeId: string;
+  code: string | null;
+  amount: number;
+  vendor: string | null;
+  notes: string | null;
+  createdAt: string;
+};
+
+export type ClaimResult = {
+  paid: boolean;
+  gpsBacked: boolean;
+  reason: string | null;
 };

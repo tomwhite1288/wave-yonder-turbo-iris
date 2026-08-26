@@ -21,12 +21,12 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useMemo, useState, type ReactNode } from "react";
-import { UserButton } from "@/lib/auth/gates";
-import { useCurrentUserState } from "@/lib/auth/use-current-user";
+import { pinLogout } from "@/lib/field/api-admin";
 import type { CompanySettings, Role } from "@/lib/field/types";
 import { dockForRole, navForRole, type NavId } from "@/lib/field/nav";
 import { cn } from "@/lib/utils";
 import { Button } from "./ui/button";
+import { InboxButtons } from "./messenger";
 
 const ICONS: Record<NavId, LucideIcon> = {
   board: Radio,
@@ -63,7 +63,6 @@ export function AppShell({
   const [open, setOpen] = useState(false);
   const items = useMemo(() => navForRole(role, settings?.roleNav), [role, settings?.roleNav]);
   const dock = useMemo(() => dockForRole(role, settings?.mobileDock, settings?.roleNav), [role, settings]);
-  const { isPending } = useCurrentUserState();
   const layout = settings?.layoutMode ?? "auto";
   const forceDesktop = layout === "desktop";
   const forceMobile = layout === "mobile";
@@ -129,7 +128,7 @@ export function AppShell({
           <Menu className="size-5" />
         </button>
         <div className="text-sm font-semibold">Field Ledger</div>
-        <span className="w-11" />
+        <InboxButtons timezone={settings?.timezone} />
       </header>
 
       {open ? (
@@ -157,18 +156,7 @@ export function AppShell({
               );
             })}
             <div className="mt-4 border-t border-border pt-3">
-              {role !== "admin" ? (
-                <Link
-                  to="/login"
-                  search={{ mode: "admin" }}
-                  onClick={() => setOpen(false)}
-                  className="mb-2 flex h-11 items-center gap-2 rounded-md px-2 text-sm text-fg hover:bg-elevated"
-                >
-                  <ShieldCheck className="size-4" />
-                  Administrator access
-                </Link>
-              ) : null}
-              {isPending ? <div className="h-8 animate-pulse rounded-md bg-elevated" /> : <UserButton />}
+              <ShopSignOut name={name} />
             </div>
           </div>
         </div>
@@ -177,7 +165,10 @@ export function AppShell({
       <div className={cn(forceMobile ? "pl-0" : "md:pl-60", forceDesktop && "!pl-60")}>
         <div className={cn("h-14 items-center justify-between border-b border-border px-6", forceMobile ? "hidden" : "hidden md:flex", forceDesktop && "!flex")}>
           <div className="text-sm text-muted">Companion payroll, dispatch & accountability</div>
-          {isPending ? <div className="h-8 w-32 animate-pulse rounded-md bg-elevated" /> : <UserButton />}
+          <div className="flex items-center gap-3">
+            <InboxButtons timezone={settings?.timezone} />
+            <ShopSignOut name={name} />
+          </div>
         </div>
         <main className={cn("px-4 py-5 md:px-6", showDock && !forceDesktop ? "pb-24 md:pb-10" : "pb-10", forceMobile && "pb-24")}>{children}</main>
       </div>
@@ -203,6 +194,33 @@ export function AppShell({
           })}
         </nav>
       ) : null}
+    </div>
+  );
+}
+
+function ShopSignOut({ name }: { name: string }) {
+  const [busy, setBusy] = useState(false);
+  return (
+    <div className="flex items-center gap-2">
+      <span className="grid h-8 w-8 place-items-center rounded-full bg-elevated text-xs font-medium">
+        {name.charAt(0).toUpperCase()}
+      </span>
+      <span className="truncate text-sm font-medium">{name}</span>
+      <button
+        type="button"
+        disabled={busy}
+        className="shrink-0 text-sm text-muted hover:text-fg disabled:opacity-50"
+        onClick={() => {
+          setBusy(true);
+          void pinLogout()
+            .then(() => {
+              window.location.href = "/login";
+            })
+            .catch(() => setBusy(false));
+        }}
+      >
+        {busy ? "Signing out…" : "Sign out"}
+      </button>
     </div>
   );
 }

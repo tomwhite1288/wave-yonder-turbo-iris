@@ -1,0 +1,15 @@
+{
+  "rev": 1787682039466,
+  "at": 1787682039466,
+  "data": {
+    "source": "gui-test",
+    "tickets": [
+      {
+        "id": "t1",
+        "ticketNumber": "700001"
+      }
+    ],
+    "timeEntries": []
+  },
+  "actor": "backup"
+}

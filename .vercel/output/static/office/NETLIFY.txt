@@ -1,0 +1,25 @@
+Field Ledger — Netlify deploy
+https://field-agent-maichles.netlify.app
+
+Drop this zip on Netlify (or unzip and push to Git). Build command: npm run build
+Publish directory: dist/client   Node: 22
+
+Environment (Site settings → Environment variables):
+  NETLIFY=true
+  VITE_AUTH_ENABLED=true
+  BETTER_AUTH_URL=https://YOUR-SITE.netlify.app
+  BETTER_AUTH_TRUSTED_ORIGINS=https://YOUR-SITE.netlify.app,https://*.netlify.app
+  BETTER_AUTH_SECRET=<random 32+ chars>
+  FIELD_UNLOCK_CODE=EDGE-LEDGER-2026
+
+Login is username + PIN, same idea as Maichle's Edge.
+First visit: create the office login (username + 4–8 digit PIN). That is stored on the server.
+Without the unlock code the hosted shop runs a 7-day trial. Enter EDGE-LEDGER-2026
+(or your FIELD_UNLOCK_CODE) in Settings → Access to license it.
+
+People: create each technician / supervisor with their own username + PIN.
+
+There is no public stock admin password.
+
+After upload: Deploys → Trigger deploy → Clear cache and deploy site.
+This pack is the accountability-loop build (GPS confirm window, sold hours, shop chat, create users).
