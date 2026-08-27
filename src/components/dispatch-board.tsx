@@ -17,6 +17,20 @@ import type { JobKind, LiveTechRow, TicketSummary } from "@/lib/field/types";
 type Span = "shift" | "day" | "week";
 type WoTab = "unassigned" | "assigned" | "completed";
 
+function dayStamp(iso: string | null, timeZone: string) {
+  if (!iso) return "";
+  try {
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date(iso));
+  } catch {
+    return iso.slice(0, 10);
+  }
+}
+
 function addDays(iso: string, days: number) {
   const d = new Date(`${iso}T12:00:00-04:00`);
   d.setDate(d.getDate() + days);
@@ -86,7 +100,7 @@ export function DispatchBoard() {
 
   const jobs = data.tickets.filter((t) => {
     if (!t.scheduledStart) return true;
-    const day = t.scheduledStart.slice(0, 10);
+    const day = dayStamp(t.scheduledStart, tz);
     if (span === "week") return weekDates.includes(day);
     return day === date;
   });
@@ -113,6 +127,7 @@ export function DispatchBoard() {
         appointmentStart: stampOn(date, hour ?? startH + 1),
       },
     });
+    setTab("assigned");
   }
 
   const working = data.rows.filter((r) => r.clockedIn || r.gpsStatus === "WORKING").length;
@@ -200,7 +215,7 @@ export function DispatchBoard() {
                 />
               );
             })}
-            {techs.length === 0 ? <p className="px-3 py-8 text-sm text-muted">No technicians on the roster yet.</p> : null}
+            {techs.length === 0 ? <p className="px-3 py-8 text-sm text-muted">No field people on the roster yet. Add a technician in People, or during activation.</p> : null}
           </div>
         </div>
       )}

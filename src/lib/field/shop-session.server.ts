@@ -62,9 +62,13 @@ function readToken(raw: string | undefined): ShopToken | null {
 }
 
 function cookieSecure(): boolean {
-  const req = getRequest();
-  const url = req?.url ?? "";
-  return url.startsWith("https://") || Boolean(process.env.NETLIFY);
+  try {
+    const req = getRequest();
+    const url = req?.url ?? "";
+    return url.startsWith("https://");
+  } catch {
+    return false;
+  }
 }
 
 function writeSession(token: ShopToken) {

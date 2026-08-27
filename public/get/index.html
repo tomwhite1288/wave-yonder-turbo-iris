@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Shop Mac files — Maichle's Edge</title>
+  <style>
+    :root { --bg:#e8f1f8; --fg:#1a3348; --muted:#5a7388; --header:#4a9de0; --card:#fff; --line:#c5d6e5; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif; background:var(--bg); color:var(--fg); }
+    header { background:var(--header); color:#fff; padding:1.25rem 1.5rem; }
+    header p { margin:0; font-size:11px; letter-spacing:.16em; text-transform:uppercase; opacity:.8; }
+    header h1 { margin:.2rem 0 0; font-size:1.4rem; }
+    main { max-width:32rem; margin:0 auto; padding:1.25rem 1rem 3rem; }
+    .card { background:var(--card); border-radius:12px; padding:1rem 1.1rem; margin:0 0 .75rem; box-shadow:0 0 0 1px rgba(26,51,72,.08), 0 10px 18px -12px rgba(26,51,72,.22); }
+    .card h2 { margin:0 0 .35rem; font-size:1rem; }
+    .card p { margin:0; color:var(--muted); font-size:.9rem; line-height:1.45; }
+    a.btn { display:block; margin-top:.85rem; background:#3b8fd4; color:#fff; text-align:center; text-decoration:none; font-weight:600; border-radius:10px; padding:.85rem 1rem; }
+    a.ghost { background:#e8f1f8; color:#1a3348; }
+    .hint { font-size:.8rem; color:var(--muted); margin-top:.75rem; line-height:1.4; }
+  </style>
+</head>
+<body>
+  <header>
+    <p>Maichle's Edge</p>
+    <h1>Files for the shop Mac</h1>
+  </header>
+  <main>
+    <div class="card">
+      <h2>Start window</h2>
+      <p>Put this in the apps folder, next to workspace. Replaces the old launcher that could not start Field Ledger.</p>
+      <a class="btn" href="./LOCAL_server_launcher_gui.py" download="LOCAL_server_launcher_gui.py">Download LOCAL_server_launcher_gui.py</a>
+    </div>
+    <div class="card">
+      <h2>Classic site API</h2>
+      <p>Only needed if you still start the old MaichlesEdge unzip. Sit it next to the start window.</p>
+      <a class="btn ghost" href="./me_local_api.py" download="me_local_api.py">Download me_local_api.py</a>
+    </div>
+    <div class="card">
+      <h2>Both, as a zip</h2>
+      <p>Those two Python files. Nothing else.</p>
+      <a class="btn ghost" href="./Maichles-Shop-Mac-start.zip" download="Maichles-Shop-Mac-start.zip">Download zip</a>
+    </div>
+    <div class="card">
+      <h2>Phone code book</h2>
+      <p>One HTML file. Type TOI for toilets. Hours + parts converts to a PM code.</p>
+      <a class="btn ghost" href="./Maichles-Code-Book.html" download="Maichles-Code-Book.html">Download Maichles-Code-Book.html</a>
+    </div>
+    <p class="hint">After download: put the .py files in apps (the folder that contains workspace). In Terminal: python3 LOCAL_server_launcher_gui.py — Field Ledger selected — Start. If Vite is already ready, Open here instead.</p>
+  </main>
+</body>
+</html>

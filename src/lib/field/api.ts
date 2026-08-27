@@ -5,7 +5,7 @@ import { newId, num, todayIso } from "@/lib/utils";
 import { haversineMeters, metersToFeet, resolveGpsStatus } from "./geo";
 import { minutesBetween, discrepancyKind, evaluateClaim, settleMinutes } from "./calc";
 import { recordGps, recordTicketPin } from "./durable.server";
-import { settlePendingGps } from "./gps-confirm.server";
+import { settlePendingGps, notifyDispatchOnSite } from "./gps-confirm.server";
 
 import {
   assertLicensed,
@@ -303,6 +303,18 @@ export const pingGps = createServerFn({ method: "POST" })
       }
     }
     await persistPgliteNow();
+    const arrived = status === "ON_SITE" || status === "WORKING";
+    const wasThere = last[0]?.status === "ON_SITE" || last[0]?.status === "WORKING";
+    if (arrived && !wasThere) {
+      await notifyDispatchOnSite({
+        companyId: profile.employee.companyId,
+        employeeId: profile.employee.id,
+        name: profile.employee.name,
+        ticketNumber: ticket?.ticketNumber ?? open[0]?.ticket_number ?? null,
+        status,
+        confirmed: true,
+      });
+    }
     return { status, distanceFt, officeFt, trackingActive: true };
   });
 
@@ -372,6 +384,16 @@ export const clockIn = createServerFn({ method: "POST" })
       newValue: { at: now, kind, gpsStatus: status, distanceFt, gpsBacked: claim.gpsBacked, confirmMin },
     });
     await persistPgliteNow();
+    if (status === "ON_SITE" || status === "WORKING" || kind === "show" || kind === "work") {
+      await notifyDispatchOnSite({
+        companyId: profile.employee.companyId,
+        employeeId: profile.employee.id,
+        name: profile.employee.name,
+        ticketNumber: ticket?.ticketNumber ?? null,
+        status: status === "OFF_SITE" || status === "APPROACHING" ? "ON_SITE" : status,
+        confirmed: Boolean(claim.gpsBacked),
+      });
+    }
     return { id, status, distanceFt, gpsBacked: claim.gpsBacked, reason: claim.reason, confirmMin };
   });
 

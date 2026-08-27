@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { authMiddleware } from "@/lib/field/shop-middleware";
-import { getSql } from "@/lib/db";
+import { getSql, persistPgliteNow } from "@/lib/db";
 import { newId } from "@/lib/utils";
 import { assertActive, assertManager, listEmployees, requireProfile, writeAudit } from "./session.server";
 import { hydrateToday } from "./hydrate.server";
@@ -21,7 +21,9 @@ export const getDispatchDesk = createServerFn({ method: "GET" })
     const profile = await desk(context.userId);
     const tickets = await loadTickets(profile.employee.companyId, profile.settings.gpsRadiusFt);
     const rows = await liveBoard(profile.employee.companyId, profile.settings);
-    const people = (await listEmployees(profile.employee.companyId, true)).filter((e) => e.role === "technician");
+    const people = (await listEmployees(profile.employee.companyId, true)).filter(
+      (e) => e.role === "technician" || e.role === "manager",
+    );
     const sql = await getSql();
     const openEx = await sql<{ c: number }>`
       select count(*)::int as c from exceptions
@@ -107,6 +109,7 @@ export const createWorkOrder = createServerFn({ method: "POST" })
       ticketId: id,
       newValue: { ticketNumber: number, technicianId: techId, customer },
     });
+    await persistPgliteNow();
     return { id, ticketNumber: number };
   });
 
@@ -160,6 +163,7 @@ export const assignWorkOrder = createServerFn({ method: "POST" })
       originalValue: { technicianId: row[0].technician_id },
       newValue: { technicianId: data.technicianId, appointmentStart: data.appointmentStart },
     });
+    await persistPgliteNow();
     return { ok: true };
   });
 

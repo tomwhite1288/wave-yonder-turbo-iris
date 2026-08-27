@@ -9,7 +9,7 @@ import { formatClock } from "@/lib/utils";
 
 export function InboxButtons({ timezone = "America/New_York" }: { timezone?: string }) {
   const qc = useQueryClient();
-  const q = useQuery({ queryKey: ["inbox"], queryFn: () => listInbox(), refetchInterval: 20_000 });
+  const q = useQuery({ queryKey: ["inbox"], queryFn: () => listInbox(), refetchInterval: 8_000 });
   const [open, setOpen] = useState<"chat" | "alerts" | null>(null);
   const [body, setBody] = useState("");
   const greeted = useRef(false);

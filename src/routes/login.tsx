@@ -6,15 +6,27 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { pinLogin, setupShopLogin, shopStatus } from "@/lib/field/api-admin";
-import { Spinner } from "@/components/spinner";
 
 export const Route = createFileRoute("/login")({
   component: Login,
 });
 
+async function loadShopStatus() {
+  const timeout = new Promise<never>((_, reject) => {
+    setTimeout(() => reject(new Error("status-timeout")), 4000);
+  });
+  return Promise.race([shopStatus(), timeout]);
+}
+
 function Login() {
-  const status = useQuery({ queryKey: ["shop-status"], queryFn: () => shopStatus() });
-  const needsSetup = status.isError || Boolean(status.data?.needsSetup);
+  const status = useQuery({
+    queryKey: ["shop-status"],
+    queryFn: loadShopStatus,
+    retry: false,
+    staleTime: 15_000,
+  });
+  const [firstRun, setFirstRun] = useState(false);
+  const showSetup = firstRun || Boolean(status.data?.needsSetup);
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
   const [pin, setPin] = useState("");
@@ -34,7 +46,7 @@ function Login() {
     setError(null);
     setBusy(true);
     try {
-      if (needsSetup) {
+      if (showSetup) {
         if (pin !== pin2) throw new Error("PINs do not match");
         const staff = [];
         if (mgrUser && mgrPin.length >= 4) {
@@ -47,15 +59,13 @@ function Login() {
       } else {
         await pinLogin({ data: { username, pin } });
       }
-      window.location.href = "/app";
+      window.location.assign("/app");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not sign in");
     } finally {
       setBusy(false);
     }
   }
-
-  if (status.isPending) return <Spinner label="Opening sign-in…" />;
 
   return (
     <main className="grid min-h-dvh place-items-center bg-bg px-4 py-10">
@@ -73,21 +83,21 @@ function Login() {
         <Card className="rounded-xl p-6">
           <form className="space-y-4" onSubmit={(e) => void onSubmit(e)}>
             <div>
-              <h1 className="text-lg font-semibold">{needsSetup ? "Activate this shop" : "Sign in"}</h1>
+              <h1 className="text-lg font-semibold">{showSetup ? "Activate this shop" : "Sign in"}</h1>
               <p className="mt-1 text-sm text-muted">
-                {needsSetup
-                  ? "Save the administrator username and PIN on the server. Without an activation code this copy runs a 7-day demo. Add a supervisor and a field tech now, or later in People."
+                {showSetup
+                  ? "Save the administrator username and PIN. Without an activation code this copy runs a 7-day demo. Add a field tech now so the dispatch board has someone to assign."
                   : "Use the username and PIN the office assigned you."}
               </p>
             </div>
-            {needsSetup ? (
+            {showSetup ? (
               <label className="block space-y-1.5">
                 <span className="text-xs font-medium text-muted">Administrator name</span>
                 <Input value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" placeholder="Pat Maichle" />
               </label>
             ) : null}
             <label className="block space-y-1.5">
-              <span className="text-xs font-medium text-muted">{needsSetup ? "Admin username" : "Username"}</span>
+              <span className="text-xs font-medium text-muted">{showSetup ? "Admin username" : "Username"}</span>
               <Input value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" autoCapitalize="none" required />
             </label>
             <label className="block space-y-1.5">
@@ -95,13 +105,13 @@ function Login() {
               <Input
                 type="password"
                 inputMode="numeric"
-                autoComplete={needsSetup ? "new-password" : "current-password"}
+                autoComplete={showSetup ? "new-password" : "current-password"}
                 value={pin}
                 onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 8))}
                 required
               />
             </label>
-            {needsSetup ? (
+            {showSetup ? (
               <>
                 <label className="block space-y-1.5">
                   <span className="text-xs font-medium text-muted">Confirm PIN</span>
@@ -123,7 +133,7 @@ function Login() {
                   />
                 </label>
                 <div className="space-y-2 rounded-lg bg-elevated p-3">
-                  <p className="text-xs font-medium uppercase tracking-wide text-subtle">Optional field tech</p>
+                  <p className="text-xs font-medium uppercase tracking-wide text-subtle">Field tech (needed for the board)</p>
                   <Input placeholder="Name" value={techName} onChange={(e) => setTechName(e.target.value)} />
                   <Input placeholder="username" autoCapitalize="none" value={techUser} onChange={(e) => setTechUser(e.target.value)} />
                   <Input
@@ -149,13 +159,22 @@ function Login() {
               </>
             ) : null}
             {error ? <p className="rounded-md bg-elevated px-3 py-2 text-sm text-danger">{error}</p> : null}
-            <Button className="h-11 w-full" disabled={busy || status.isPending} type="submit">
-              {busy ? "Working…" : needsSetup ? "Save office login" : "Continue"}
+            <Button className="h-11 w-full" disabled={busy} type="submit">
+              {busy ? "Working…" : showSetup ? "Save office login" : "Continue"}
             </Button>
           </form>
         </Card>
         <p className="mt-6 text-center text-xs text-subtle">
-          {needsSetup ? "Demo mode until activation. Extend or disable the trial in Settings." : "Assign logins in People."}{" "}
+          {status.isSuccess && !status.data?.needsSetup ? (
+            <button type="button" className="hover:text-muted" onClick={() => setFirstRun(true)}>
+              First time on this copy? Activate
+            </button>
+          ) : (
+            <button type="button" className="hover:text-muted" onClick={() => setFirstRun(false)}>
+              Already activated? Sign in
+            </button>
+          )}
+          {" · "}
           <Link to="/" className="hover:text-muted">
             Back
           </Link>

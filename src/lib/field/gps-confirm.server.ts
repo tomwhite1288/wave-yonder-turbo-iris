@@ -122,3 +122,39 @@ export async function settlePendingGps(opts: {
     }
   }
 }
+
+export async function notifyDispatchOnSite(opts: {
+  companyId: string;
+  employeeId: string;
+  name: string;
+  ticketNumber?: string | null;
+  status: GpsStatus;
+  confirmed: boolean;
+}) {
+  if (opts.status !== "ON_SITE" && opts.status !== "WORKING") return;
+  const sql = await getSql();
+  await sql.query(`create table if not exists shop_alerts (
+    id text primary key, company_id text not null, employee_id text, kind text not null,
+    title text not null, body text not null, created_at timestamptz not null default now(), read_at timestamptz
+  )`);
+  const recent = await sql<{ id: string }>`
+    select id from shop_alerts
+    where company_id = ${opts.companyId}
+      and kind = 'onsite'
+      and body like ${"%" + opts.name + "%"}
+      and created_at > now() - interval '8 minutes'
+    limit 1
+  `;
+  if (recent[0]) return;
+  const ticket = opts.ticketNumber ? ` · ticket ${opts.ticketNumber}` : "";
+  const settle = opts.confirmed ? "GPS confirmed." : "On site now. GPS has 15 minutes to finish settling.";
+  await sql`
+    insert into shop_alerts (id, company_id, employee_id, kind, title, body)
+    values (
+      ${newId("al")}, ${opts.companyId}, null, 'onsite',
+      ${`${opts.name} on site`},
+      ${`${opts.name} is ${opts.status === "WORKING" ? "working" : "on site"}${ticket}. ${settle}`}
+    )
+  `;
+}
+

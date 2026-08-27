@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Outlet, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { RedirectToSignIn } from "@/lib/auth/gates";
 import { getSessionProfile } from "@/lib/field/api";
@@ -7,6 +7,7 @@ import { PendingGate, SignupClosed } from "@/components/pending-gate";
 import { ThemeApplier } from "@/components/theme-applier";
 import { Spinner } from "@/components/spinner";
 import { TrialBanner, TrialGate } from "@/components/trial-gate";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/app")({ component: AppLayout });
 
@@ -15,10 +16,21 @@ function AppLayout() {
     queryKey: ["profile"],
     queryFn: () => getSessionProfile(),
     retry: false,
+    staleTime: 8_000,
   });
 
   if (profile.isPending) {
-    return <Spinner label="Opening Field Ledger…" />;
+    return (
+      <div className="grid min-h-dvh place-items-center bg-bg px-6 text-center">
+        <div>
+          <Spinner label="Opening Field Ledger…" />
+          <p className="mt-6 text-sm text-muted">If this never finishes, the shop login cookie did not stick. Sign in again.</p>
+          <Button asChild variant="secondary" className="mt-4">
+            <Link to="/login">Back to sign-in</Link>
+          </Button>
+        </div>
+      </div>
+    );
   }
   if (profile.error) return <RedirectToSignIn />;
 

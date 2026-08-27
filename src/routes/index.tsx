@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, Radio, ShieldCheck, Timer, MapPinned, BookOpen, Wallet } from "lucide-react";
+import { ArrowRight, Radio, ShieldCheck, Timer, MapPinned, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/")({ component: Home });
@@ -35,19 +35,16 @@ function Home() {
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
           <Button asChild>
-            <a href="/Maichles-Code-Book.html">
-              Phone code book <BookOpen className="size-4" />
-            </a>
-          </Button>
-          <Button asChild variant="secondary">
             <Link to="/login">
-              Field Ledger sign-in
+              Sign in <ArrowRight className="size-4" />
             </Link>
           </Button>
+          <Button asChild variant="secondary">
+            <a href="/get/Field-Ledger-shop.zip" download="Field-Ledger-shop.zip">
+              Download shop copy
+            </a>
+          </Button>
         </div>
-        <p className="mt-4 max-w-2xl text-sm text-muted">
-          Phone copy is the Field Blue code book — one file. Type TOI for toilets. Hours + parts converts to a PM code.
-        </p>
 
         <div className="mt-14 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {[

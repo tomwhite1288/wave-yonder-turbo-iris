@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Toaster } from "sonner";
 import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
+import { AppNotFound } from "@/lib/not-found";
 import appCss from "../styles.css?url";
 
 const APP_NAME = "Field Ledger";
@@ -31,6 +32,7 @@ export const Route = createRootRoute({
       },
     ],
   }),
+  notFoundComponent: AppNotFound,
   component: RootDocument,
 });
 
