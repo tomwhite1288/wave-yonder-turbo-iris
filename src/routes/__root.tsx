@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Toaster } from "sonner";
 import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
@@ -37,6 +37,23 @@ export const Route = createRootRoute({
 });
 
 function RootDocument() {
+  return (
+    <html lang="en" className="antialiased" suppressHydrationWarning>
+      <head>
+        <HeadContent />
+      </head>
+      <body className="bg-bg text-fg">
+        <AppProviders>
+          <Outlet />
+          <Toaster theme="dark" position="top-center" richColors />
+        </AppProviders>
+        <Scripts />
+      </body>
+    </html>
+  );
+}
+
+function AppProviders({ children }: { children: ReactNode }) {
   const [queryClient] = useState(
     () =>
       new QueryClient({
@@ -45,22 +62,12 @@ function RootDocument() {
         },
       }),
   );
-
   return (
-    <html lang="en" className="antialiased" suppressHydrationWarning>
-      <head>
-        <HeadContent />
-      </head>
-      <body className="bg-bg text-fg">
-        <QueryClientProvider client={queryClient}>
-          <AuthProvider>
-            <PreviewHostBridge />
-            <Outlet />
-            <Toaster theme="dark" position="top-center" richColors />
-          </AuthProvider>
-        </QueryClientProvider>
-        <Scripts />
-      </body>
-    </html>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <PreviewHostBridge />
+        {children}
+      </AuthProvider>
+    </QueryClientProvider>
   );
 }

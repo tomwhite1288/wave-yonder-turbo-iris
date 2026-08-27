@@ -6,32 +6,22 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { pinLogin, setupShopLogin, shopStatus } from "@/lib/field/api-admin";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/login")({
   ssr: false,
   component: Login,
 });
 
-async function loadShopStatus() {
-  const timeout = new Promise<never>((_, reject) => {
-    setTimeout(() => reject(new Error("status-timeout")), 4000);
-  });
-  return Promise.race([shopStatus(), timeout]);
-}
-
 function Login() {
   const status = useQuery({
     queryKey: ["shop-status"],
-    queryFn: loadShopStatus,
+    queryFn: () => shopStatus(),
     retry: false,
     staleTime: 15_000,
   });
-  const [firstRun, setFirstRun] = useState(false);
-  const shopReady =
-    typeof window !== "undefined" && window.localStorage.getItem("fl_shop_ready") === "1";
-  const showSetup =
-    firstRun ||
-    (Boolean(status.data?.needsSetup) && !status.data?.signedIn && !shopReady);
+  const [mode, setMode] = useState<"signin" | "activate">("activate");
+  const showSetup = mode === "activate";
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
   const [pin, setPin] = useState("");
@@ -40,9 +30,6 @@ function Login() {
   const [techName, setTechName] = useState("");
   const [techUser, setTechUser] = useState("");
   const [techPin, setTechPin] = useState("");
-  const [mgrName, setMgrName] = useState("");
-  const [mgrUser, setMgrUser] = useState("");
-  const [mgrPin, setMgrPin] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -52,15 +39,15 @@ function Login() {
     setBusy(true);
     try {
       if (showSetup) {
+        if (pin.length < 4) throw new Error("PIN must be at least 4 digits");
         if (pin !== pin2) throw new Error("PINs do not match");
         const staff = [];
-        if (mgrUser && mgrPin.length >= 4) {
-          staff.push({ role: "manager" as const, username: mgrUser, pin: mgrPin, name: mgrName || "Office Supervisor" });
-        }
         if (techUser && techPin.length >= 4) {
           staff.push({ role: "technician" as const, username: techUser, pin: techPin, name: techName || "Field Technician" });
         }
-        await setupShopLogin({ data: { username, pin, name, unlockCode: unlockCode.trim() || undefined, staff } });
+        await setupShopLogin({
+          data: { username, pin, name: name || username, unlockCode: unlockCode.trim() || undefined, staff },
+        });
       } else {
         await pinLogin({ data: { username, pin } });
       }
@@ -72,12 +59,11 @@ function Login() {
       window.location.replace("/app");
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      if (/dispatcher|useContext|hydrat|abort/i.test(msg)) {
+      if (/dispatcher|useContext|useState|hydrat|abort/i.test(msg)) {
         window.location.replace("/app");
         return;
       }
       setError(msg || "Could not sign in");
-    } finally {
       setBusy(false);
     }
   }
@@ -95,14 +81,37 @@ function Login() {
           </div>
         </div>
 
+        <div className="mb-3 grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            className={cn(
+              "h-11 rounded-md text-sm font-medium",
+              !showSetup ? "bg-primary text-primary-fg" : "bg-elevated text-muted",
+            )}
+            onClick={() => setMode("signin")}
+          >
+            Sign in
+          </button>
+          <button
+            type="button"
+            className={cn(
+              "h-11 rounded-md text-sm font-medium",
+              showSetup ? "bg-primary text-primary-fg" : "bg-elevated text-muted",
+            )}
+            onClick={() => setMode("activate")}
+          >
+            Activate shop
+          </button>
+        </div>
+
         <Card className="rounded-xl p-6">
           <form className="space-y-4" onSubmit={(e) => void onSubmit(e)}>
             <div>
               <h1 className="text-lg font-semibold">{showSetup ? "Activate this shop" : "Sign in"}</h1>
               <p className="mt-1 text-sm text-muted">
                 {showSetup
-                  ? "Save the administrator username and PIN. Without an activation code this copy runs a 7-day demo. Add a field tech now so the dispatch board has someone to assign."
-                  : "Use the username and PIN the office assigned you."}
+                  ? "First time on this copy: save an admin username and PIN. Add a field tech so dispatch has someone to assign."
+                  : "Already set up: use the username and PIN the office assigned."}
               </p>
             </div>
             {showSetup ? (
@@ -159,47 +168,21 @@ function Login() {
                     onChange={(e) => setTechPin(e.target.value.replace(/\D/g, "").slice(0, 8))}
                   />
                 </div>
-                <div className="space-y-2 rounded-lg bg-elevated p-3">
-                  <p className="text-xs font-medium uppercase tracking-wide text-subtle">Optional supervisor / office</p>
-                  <Input placeholder="Name" value={mgrName} onChange={(e) => setMgrName(e.target.value)} />
-                  <Input placeholder="username" autoCapitalize="none" value={mgrUser} onChange={(e) => setMgrUser(e.target.value)} />
-                  <Input
-                    placeholder="PIN"
-                    type="password"
-                    inputMode="numeric"
-                    value={mgrPin}
-                    onChange={(e) => setMgrPin(e.target.value.replace(/\D/g, "").slice(0, 8))}
-                  />
-                </div>
               </>
             ) : null}
             {error ? <p className="rounded-md bg-elevated px-3 py-2 text-sm text-danger">{error}</p> : null}
             <Button className="h-11 w-full" disabled={busy} type="submit">
-              {busy ? (showSetup ? "Saving shop — first time can take a few seconds…" : "Signing in…") : showSetup ? "Save office login" : "Continue"}
+              {busy ? (showSetup ? "Saving shop…" : "Signing in…") : showSetup ? "Save office login" : "Continue"}
             </Button>
           </form>
         </Card>
         <p className="mt-6 text-center text-xs text-subtle">
-          {status.isSuccess && !status.data?.needsSetup ? (
-            <button type="button" className="hover:text-muted" onClick={() => setFirstRun(true)}>
-              First time on this copy? Activate
-            </button>
-          ) : (
-            <button type="button" className="hover:text-muted" onClick={() => setFirstRun(false)}>
-              Already activated? Sign in
-            </button>
-          )}
-          {" · "}
           <Link to="/" className="hover:text-muted">
             Back
           </Link>
         </p>
-        {status.data ? (
-          <p className="mt-3 text-center text-xs text-muted">
-            {status.data.backend === "neon" || status.data.durable
-              ? "This copy is on the hosted shop database. Dispatcher and field phones share the same tickets and punches."
-              : "This Mac is using a local shop file. For tomorrow’s field test, host the same build with DATABASE_URL so both phones hit one database."}
-          </p>
+        {status.data?.backend === "neon" || status.data?.durable ? (
+          <p className="mt-3 text-center text-xs text-muted">Hosted shop database — dispatcher and field phones share tickets.</p>
         ) : null}
       </div>
     </main>
