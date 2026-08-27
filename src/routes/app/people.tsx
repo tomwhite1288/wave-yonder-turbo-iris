@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Spinner } from "@/components/spinner";
 
-export const Route = createFileRoute("/app/people")({ component: PeoplePage });
+export const Route = createFileRoute("/app/people")({ ssr: false, component: PeoplePage });
 
 function PeoplePage() {
   const qc = useQueryClient();

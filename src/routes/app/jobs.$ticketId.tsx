@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/spinner";
 import type { JobKind } from "@/lib/field/types";
 
-export const Route = createFileRoute("/app/jobs/$ticketId")({ component: JobDetail });
+export const Route = createFileRoute("/app/jobs/$ticketId")({ ssr: false, component: JobDetail });
 
 function JobDetail() {
   const { ticketId } = Route.useParams();

@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import type { ExceptionKind } from "@/lib/field/types";
 
-export const Route = createFileRoute("/app/exceptions")({ component: ExceptionsPage });
+export const Route = createFileRoute("/app/exceptions")({ ssr: false, component: ExceptionsPage });
 
 const FILTERS: { id: "open" | "all" | ExceptionKind; label: string }[] = [
   { id: "open", label: "Open" },

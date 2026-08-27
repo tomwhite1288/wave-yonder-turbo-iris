@@ -151,6 +151,15 @@ export default defineConfig(({ command, isPreview }) => ({
     host: "0.0.0.0",
     port: 8080,
     strictPort: true,
+    warmup: {
+      clientFiles: [
+        "./src/routes/login.tsx",
+        "./src/routes/app/route.tsx",
+        "./src/routes/app/index.tsx",
+        "./src/components/dispatch-board.tsx",
+        "./src/components/app-shell.tsx",
+      ],
+    },
   },
   preview: {
     host: "127.0.0.1",
@@ -158,6 +167,29 @@ export default defineConfig(({ command, isPreview }) => ({
     strictPort: true,
   },
   resolve: { tsconfigPaths: true },
+  optimizeDeps: {
+    holdUntilCrawlEnd: true,
+    include: [
+      "react",
+      "react-dom",
+      "react/jsx-runtime",
+      "@tanstack/react-query",
+      "@tanstack/react-router",
+      "@tanstack/history",
+      "@tanstack/router-core",
+      "sonner",
+      "lucide-react",
+      "better-auth",
+      "better-auth/react",
+      "better-auth/client/plugins",
+      "@better-auth/core",
+      "@better-auth/kysely-adapter",
+      "@better-auth/telemetry",
+      "@better-auth/utils",
+      "seroval",
+      "defu",
+    ],
+  },
   plugins: [
     pgliteBootstrapPlugin(),
     // Before tanstackStart so /auth/popup never falls through to the SPA.

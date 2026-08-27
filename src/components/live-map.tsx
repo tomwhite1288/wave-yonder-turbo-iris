@@ -41,8 +41,14 @@ export function LiveMap({
   const [zoom, setZoom] = useState(pins.length > 1 ? 12 : 14);
   const [center, setCenter] = useState({ lat: seedLat, lng: seedLng });
   const [size, setSize] = useState({ w: 640, h: 360 });
+  const [ready, setReady] = useState(false);
   const box = useRef<HTMLDivElement>(null);
   const drag = useRef<{ x: number; y: number; lat: number; lng: number } | null>(null);
+
+  useEffect(() => {
+    const id = window.requestAnimationFrame(() => setReady(true));
+    return () => window.cancelAnimationFrame(id);
+  }, []);
 
   function zoomBy(delta: number, around?: { x: number; y: number }) {
     setZoom((prev) => {

@@ -6,7 +6,7 @@ import { formatHours, formatMoney } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Spinner } from "@/components/spinner";
 
-export const Route = createFileRoute("/app/efficiency")({ component: EfficiencyPage });
+export const Route = createFileRoute("/app/efficiency")({ ssr: false, component: EfficiencyPage });
 
 function EfficiencyPage() {
   const q = useQuery({ queryKey: ["efficiency"], queryFn: () => getEfficiency(), refetchInterval: 30_000 });

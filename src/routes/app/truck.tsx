@@ -5,7 +5,7 @@ import { getTruck, replenishTruck, useTruckPart } from "@/lib/field/api-parts";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
-export const Route = createFileRoute("/app/truck")({ component: TruckPage });
+export const Route = createFileRoute("/app/truck")({ ssr: false, component: TruckPage });
 
 function TruckPage() {
   const qc = useQueryClient();

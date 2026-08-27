@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getReports } from "@/lib/field/api-ops";
 import { formatHours, formatMoney, num } from "@/lib/utils";
 
-export const Route = createFileRoute("/app/reports")({ component: ReportsPage });
+export const Route = createFileRoute("/app/reports")({ ssr: false, component: ReportsPage });
 
 function ReportsPage() {
   const q = useQuery({ queryKey: ["reports"], queryFn: () => getReports() });

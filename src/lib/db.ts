@@ -1,4 +1,6 @@
 import { pendingMigrations } from "../../scripts/migration-plan.mjs";
+import { mkdirSync, existsSync, readFileSync, writeFileSync } from "node:fs";
+import path from "node:path";
 
 /** Which database backend is active. */
 export type DbSource = "neon" | "pglite";
@@ -134,13 +136,30 @@ function createNeonSql(): Promise<Sql> {
   return globalRef.__pgSqlPromise__;
 }
 
+function localDumpPath() {
+  return path.join(process.cwd(), "data", "pglite.dump");
+}
+
+function localDataDir() {
+  return path.join(process.cwd(), "data", "pglite");
+}
+
 async function loadPgliteDump(): Promise<Blob | File | undefined> {
-  if (!isServerlessRuntime()) return undefined;
+  if (isServerlessRuntime()) {
+    try {
+      const { getStore } = await import("@netlify/blobs");
+      const store = getStore({ name: "fieldledger-db", consistency: "strong" });
+      const data = await store.get("pglite.dump", { type: "blob" });
+      if (data) return data;
+    } catch {
+      /* no blobs */
+    }
+  }
   try {
-    const { getStore } = await import("@netlify/blobs");
-    const store = getStore({ name: "fieldledger-db", consistency: "strong" });
-    const data = await store.get("pglite.dump", { type: "blob" });
-    return data ?? undefined;
+    const file = localDumpPath();
+    if (!existsSync(file)) return undefined;
+    const buf = readFileSync(file);
+    return new Blob([buf], { type: "application/gzip" });
   } catch {
     return undefined;
   }
@@ -148,25 +167,35 @@ async function loadPgliteDump(): Promise<Blob | File | undefined> {
 
 let persistTimer: ReturnType<typeof setTimeout> | null = null;
 function schedulePglitePersist(pg: import("@electric-sql/pglite").PGlite) {
-  if (!isServerlessRuntime()) return;
   if (persistTimer) clearTimeout(persistTimer);
   persistTimer = setTimeout(() => {
     void persistPgliteNow();
-  }, 200);
+  }, 250);
 }
 
-/** Flush the in-memory shop database to Netlify Blobs so the next request sees it. */
+/** Flush the shop database so the next request still has the office login and tickets. */
 export async function persistPgliteNow() {
   if (typeof window !== "undefined") return;
   if (currentDbSource() !== "pglite") return;
-  if (!isServerlessRuntime()) return;
   try {
     const pg = await globalRef.__pgliteInstance__;
     if (!pg) return;
     const dump = await pg.dumpDataDir("gzip");
-    const { getStore } = await import("@netlify/blobs");
-    const store = getStore({ name: "fieldledger-db", consistency: "strong" });
-    await store.set("pglite.dump", dump);
+    mkdirSync(path.dirname(localDumpPath()), { recursive: true });
+    const raw =
+      dump instanceof Blob
+        ? Buffer.from(await dump.arrayBuffer())
+        : Buffer.from((dump as { tarball?: Uint8Array }).tarball ?? (dump as Uint8Array));
+    writeFileSync(localDumpPath(), raw);
+    if (isServerlessRuntime()) {
+      try {
+        const { getStore } = await import("@netlify/blobs");
+        const store = getStore({ name: "fieldledger-db", consistency: "strong" });
+        await store.set("pglite.dump", dump);
+      } catch {
+        /* preview / no blobs */
+      }
+    }
   } catch (err) {
     console.error("[db] PGLite persist skipped:", err);
   }
@@ -186,10 +215,16 @@ async function createPgliteSql(): Promise<Sql> {
     const loadDataDir = await loadPgliteDump();
     let pg: import("@electric-sql/pglite").PGlite;
     try {
-      pg = new PGlite({ loadDataDir, parsers });
+      if (!isServerlessRuntime()) {
+        const dir = localDataDir();
+        mkdirSync(dir, { recursive: true });
+        pg = new PGlite(dir, { loadDataDir, parsers, relaxedDurability: true });
+      } else {
+        pg = new PGlite({ loadDataDir, parsers, relaxedDurability: true });
+      }
       await pg.waitReady;
     } catch {
-      pg = new PGlite({ parsers });
+      pg = new PGlite({ loadDataDir, parsers });
       await pg.waitReady;
     }
     await pg.exec(

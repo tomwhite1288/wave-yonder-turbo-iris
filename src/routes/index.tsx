@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, Radio, ShieldCheck, Timer, MapPinned, Wallet } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ArrowRight, Radio, ShieldCheck, Timer, MapPinned, BookOpen, Wallet } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/")({ component: Home });
 
@@ -17,11 +18,9 @@ function Home() {
             <div className="text-[11px] text-muted">Maichle's Edge</div>
           </div>
         </div>
-        <Button asChild size="sm">
-          <Link to="/login">
-            Sign in <ArrowRight className="size-4" />
-          </Link>
-        </Button>
+        <Link to="/login" className={cn(buttonVariants({ size: "sm" }))}>
+          Sign in <ArrowRight className="size-4" />
+        </Link>
       </header>
 
       <section className="mx-auto max-w-5xl px-5 pb-16 pt-8 stagger-in">
@@ -34,16 +33,12 @@ function Home() {
           Number. This system runs the dispatch board, GPS attendance, invoice vs plumbing vs HVAC codes, and payroll.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
-          <Button asChild>
-            <Link to="/login">
-              Sign in <ArrowRight className="size-4" />
-            </Link>
-          </Button>
-          <Button asChild variant="secondary">
-            <a href="/get/Field-Ledger-shop.zip" download="Field-Ledger-shop.zip">
-              Download shop copy
-            </a>
-          </Button>
+          <Link to="/login" className={cn(buttonVariants())}>
+            Sign in <ArrowRight className="size-4" />
+          </Link>
+          <a href="/get/Field-Ledger-shop.zip" download="Field-Ledger-shop.zip" className={cn(buttonVariants({ variant: "secondary" }))}>
+            Download shop copy
+          </a>
         </div>
 
         <div className="mt-14 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

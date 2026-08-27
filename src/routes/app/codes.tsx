@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Spinner } from "@/components/spinner";
 
-export const Route = createFileRoute("/app/codes")({ component: CodesPage });
+export const Route = createFileRoute("/app/codes")({ ssr: false, component: CodesPage });
 
 const BOOKS: { id: CodeBookKind | "all"; label: string }[] = [
   { id: "all", label: "All" },

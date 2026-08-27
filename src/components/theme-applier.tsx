@@ -1,8 +1,8 @@
-import { useLayoutEffect } from "react";
+import { useEffect } from "react";
 import type { LayoutMode, ThemeId } from "@/lib/field/types";
 
 export function ThemeApplier({ theme, layout }: { theme?: ThemeId; layout?: LayoutMode }) {
-  useLayoutEffect(() => {
+  useEffect(() => {
     const root = document.documentElement;
     const cached = window.localStorage.getItem("fl_theme") as ThemeId | null;
     const next = theme || cached;

@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { getSchedules } from "@/lib/field/api-ops";
 
-export const Route = createFileRoute("/app/schedules")({ component: SchedulesPage });
+export const Route = createFileRoute("/app/schedules")({ ssr: false, component: SchedulesPage });
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 

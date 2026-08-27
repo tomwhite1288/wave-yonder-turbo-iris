@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { listAudit } from "@/lib/field/api-ops";
 import { formatClock } from "@/lib/utils";
 
-export const Route = createFileRoute("/app/audit")({ component: AuditPage });
+export const Route = createFileRoute("/app/audit")({ ssr: false, component: AuditPage });
 
 function AuditPage() {
   const q = useQuery({ queryKey: ["audit"], queryFn: () => listAudit() });

@@ -27,6 +27,7 @@ import { dockForRole, navForRole, type NavId } from "@/lib/field/nav";
 import { cn } from "@/lib/utils";
 import { Button } from "./ui/button";
 import { InboxButtons } from "./messenger";
+import { PageErrorBoundary } from "./page-error";
 
 const ICONS: Record<NavId, LucideIcon> = {
   board: Radio,
@@ -170,7 +171,9 @@ export function AppShell({
             <ShopSignOut name={name} />
           </div>
         </div>
-        <main className={cn("px-4 py-5 md:px-6", showDock && !forceDesktop ? "pb-24 md:pb-10" : "pb-10", forceMobile && "pb-24")}>{children}</main>
+        <main className={cn("px-4 py-5 md:px-6", showDock && !forceDesktop ? "pb-24 md:pb-10" : "pb-10", forceMobile && "pb-24")}>
+          <PageErrorBoundary>{children}</PageErrorBoundary>
+        </main>
       </div>
 
       {showDock && !forceDesktop ? (

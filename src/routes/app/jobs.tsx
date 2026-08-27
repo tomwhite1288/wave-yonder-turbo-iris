@@ -5,7 +5,7 @@ import { formatClock, formatHours } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/spinner";
 
-export const Route = createFileRoute("/app/jobs")({ component: JobsPage });
+export const Route = createFileRoute("/app/jobs")({ ssr: false, component: JobsPage });
 
 function JobsPage() {
   const q = useQuery({ queryKey: ["jobs"], queryFn: () => listJobs() });

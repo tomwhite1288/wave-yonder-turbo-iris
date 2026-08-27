@@ -7,7 +7,7 @@ import { formatHours, formatMoney, downloadText } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
-export const Route = createFileRoute("/app/payroll")({ component: PayrollPage });
+export const Route = createFileRoute("/app/payroll")({ ssr: false, component: PayrollPage });
 
 function PayrollPage() {
   const q = useQuery({ queryKey: ["payroll"], queryFn: () => getPayroll() });

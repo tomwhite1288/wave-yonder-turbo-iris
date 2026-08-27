@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
-export const Route = createFileRoute("/app/parts")({ component: PartsPage });
+export const Route = createFileRoute("/app/parts")({ ssr: false, component: PartsPage });
 
 function PartsPage() {
   const [q, setQ] = useState("");

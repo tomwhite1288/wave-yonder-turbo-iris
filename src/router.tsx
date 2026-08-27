@@ -8,5 +8,6 @@ export function getRouter() {
     routeTree,
     defaultErrorComponent: AppErrorComponent,
     defaultNotFoundComponent: AppNotFound,
+    defaultSsr: false,
   });
 }

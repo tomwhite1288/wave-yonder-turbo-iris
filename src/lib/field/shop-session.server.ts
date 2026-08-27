@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { getCookie, getRequest, setCookie } from "@tanstack/react-start/server";
-import { getSql, persistPgliteNow } from "@/lib/db";
+import { getSql, persistPgliteNow, currentDbSource } from "@/lib/db";
 import { hashAdminCode, writeSetting } from "./admin-auth.server";
 import { mapEmployee, loadSettings, type EmpRow } from "./session.server";
 import type { Role, SessionProfile } from "./types";
@@ -192,9 +192,17 @@ export async function shopLoginStatus() {
       needsSetup: Number(rows[0]?.c ?? 0) === 0,
       signedIn: Boolean(peekShopToken()),
       usernames: names.map((r) => r.username),
+      durable: currentDbSource() === "neon" || Boolean(process.env.NETLIFY) || Boolean(process.env.VERCEL),
+      backend: currentDbSource(),
     };
   } catch {
-    return { needsSetup: true, signedIn: Boolean(peekShopToken()) };
+    return {
+      needsSetup: true,
+      signedIn: Boolean(peekShopToken()),
+      usernames: [] as string[],
+      durable: currentDbSource() === "neon",
+      backend: currentDbSource(),
+    };
   }
 }
 

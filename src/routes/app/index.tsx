@@ -4,10 +4,15 @@ import { getSessionProfile } from "@/lib/field/api";
 import { DispatchBoard } from "@/components/dispatch-board";
 import { Spinner } from "@/components/spinner";
 
-export const Route = createFileRoute("/app/")({ component: BoardPage });
+export const Route = createFileRoute("/app/")({ ssr: false, component: BoardPage });
 
 function BoardPage() {
-  const profile = useQuery({ queryKey: ["profile"], queryFn: () => getSessionProfile() });
+  const profile = useQuery({
+    queryKey: ["profile"],
+    queryFn: () => getSessionProfile(),
+    staleTime: 30_000,
+    placeholderData: (prev) => prev,
+  });
   if (profile.data?.employee.role === "technician") {
     return <Navigate to="/app/field" />;
   }

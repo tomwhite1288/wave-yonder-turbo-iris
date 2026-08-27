@@ -16,7 +16,7 @@ import { downloadText } from "@/lib/utils";
 import { Spinner } from "@/components/spinner";
 import { RadiusCalibrator } from "@/components/radius-calibrator";
 
-export const Route = createFileRoute("/app/settings")({ component: SettingsPage });
+export const Route = createFileRoute("/app/settings")({ ssr: false, component: SettingsPage });
 
 type Tab = "pay" | "office" | "payroll" | "look" | "sync" | "access" | "backup";
 

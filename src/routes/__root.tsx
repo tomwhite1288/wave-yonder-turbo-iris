@@ -52,9 +52,9 @@ function RootDocument() {
         <HeadContent />
       </head>
       <body className="bg-bg text-fg">
-        <PreviewHostBridge />
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
+            <PreviewHostBridge />
             <Outlet />
             <Toaster theme="dark" position="top-center" richColors />
           </AuthProvider>

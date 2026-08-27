@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 
-export const Route = createFileRoute("/app/timecards")({ component: TimecardsPage });
+export const Route = createFileRoute("/app/timecards")({ ssr: false, component: TimecardsPage });
 
 function TimecardsPage() {
   const qc = useQueryClient();

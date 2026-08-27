@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { haversineMeters, metersToFeet, resolveGpsStatus } from "@/lib/field/geo";
 import type { GpsStatus, TimeKind } from "@/lib/field/types";
 
-export const Route = createFileRoute("/app/field")({ component: FieldPage });
+export const Route = createFileRoute("/app/field")({ ssr: false, component: FieldPage });
 
 function FieldPage() {
   const qc = useQueryClient();

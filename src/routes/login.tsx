@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { pinLogin, setupShopLogin, shopStatus } from "@/lib/field/api-admin";
 
 export const Route = createFileRoute("/login")({
+  ssr: false,
   component: Login,
 });
 
@@ -26,7 +27,11 @@ function Login() {
     staleTime: 15_000,
   });
   const [firstRun, setFirstRun] = useState(false);
-  const showSetup = firstRun || Boolean(status.data?.needsSetup);
+  const shopReady =
+    typeof window !== "undefined" && window.localStorage.getItem("fl_shop_ready") === "1";
+  const showSetup =
+    firstRun ||
+    (Boolean(status.data?.needsSetup) && !status.data?.signedIn && !shopReady);
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
   const [pin, setPin] = useState("");
@@ -59,9 +64,19 @@ function Login() {
       } else {
         await pinLogin({ data: { username, pin } });
       }
-      window.location.assign("/app");
+      try {
+        window.localStorage.setItem("fl_shop_ready", "1");
+      } catch {
+        /* private mode */
+      }
+      window.location.replace("/app");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not sign in");
+      const msg = err instanceof Error ? err.message : String(err);
+      if (/dispatcher|useContext|hydrat|abort/i.test(msg)) {
+        window.location.replace("/app");
+        return;
+      }
+      setError(msg || "Could not sign in");
     } finally {
       setBusy(false);
     }
@@ -160,7 +175,7 @@ function Login() {
             ) : null}
             {error ? <p className="rounded-md bg-elevated px-3 py-2 text-sm text-danger">{error}</p> : null}
             <Button className="h-11 w-full" disabled={busy} type="submit">
-              {busy ? "Working…" : showSetup ? "Save office login" : "Continue"}
+              {busy ? (showSetup ? "Saving shop — first time can take a few seconds…" : "Signing in…") : showSetup ? "Save office login" : "Continue"}
             </Button>
           </form>
         </Card>
@@ -179,6 +194,13 @@ function Login() {
             Back
           </Link>
         </p>
+        {status.data ? (
+          <p className="mt-3 text-center text-xs text-muted">
+            {status.data.backend === "neon" || status.data.durable
+              ? "This copy is on the hosted shop database. Dispatcher and field phones share the same tickets and punches."
+              : "This Mac is using a local shop file. For tomorrow’s field test, host the same build with DATABASE_URL so both phones hit one database."}
+          </p>
+        ) : null}
       </div>
     </main>
   );
