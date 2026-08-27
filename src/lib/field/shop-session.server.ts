@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { getCookie, getRequest, setCookie } from "@tanstack/react-start/server";
-import { getSql, persistPgliteNow, currentDbSource } from "@/lib/db";
+import { getSql, persistPgliteNow, currentDbSource, markShopFileActivated } from "@/lib/db";
 import { hashAdminCode, writeSetting } from "./admin-auth.server";
 import { mapEmployee, loadSettings, type EmpRow } from "./session.server";
 import type { Role, SessionProfile } from "./types";
@@ -324,6 +324,8 @@ export async function setupOfficeLogin(input: {
     `;
   }
   await collapseDuplicatePeople(companyId);
+  await writeSetting(companyId, "shop_activated", "true", OFFICE_ID);
+  markShopFileActivated();
   await persistPgliteNow();
   const row = (await sql.query<EmpRow>(`${EMP_SELECT} where e.id = $1`, [OFFICE_ID]))[0]!;
   return issueForEmployee(row, username);

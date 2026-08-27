@@ -28,6 +28,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "./ui/button";
 import { InboxButtons } from "./messenger";
 import { PageErrorBoundary } from "./page-error";
+import { DevicePermissions } from "./device-permissions";
 
 const ICONS: Record<NavId, LucideIcon> = {
   board: Radio,
@@ -172,6 +173,7 @@ export function AppShell({
           </div>
         </div>
         <main className={cn("px-4 py-5 md:px-6", showDock && !forceDesktop ? "pb-24 md:pb-10" : "pb-10", forceMobile && "pb-24")}>
+          <DevicePermissions tracking={tracking} />
           <PageErrorBoundary>{children}</PageErrorBoundary>
         </main>
       </div>

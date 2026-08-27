@@ -1,4 +1,4 @@
-import { getSql } from "@/lib/db";
+import { getSql, shopFileActivated, currentDbSource } from "@/lib/db";
 import { newId } from "@/lib/utils";
 
 const cors: Record<string, string> = {
@@ -22,7 +22,19 @@ export function syncKeyOf(request: Request) {
   return (request.headers.get("x-sync-key") || request.headers.get("x-field-key") || "").trim();
 }
 
+async function shopReadyForSync() {
+  if (currentDbSource() !== "neon" && !shopFileActivated()) return false;
+  const sql = await getSql();
+  const rows = await sql<{ value: string }>`
+    select value from settings where key = 'shop_activated' limit 1
+  `;
+  return rows[0]?.value === "true";
+}
+
 export async function readSync(key: string) {
+  if (!(await shopReadyForSync())) {
+    return { rev: 0, at: 0, data: null as unknown, blocked: true };
+  }
   const sql = await getSql();
   const rows = await sql<{ rev: number; payload: unknown; actor: string | null; updated_at: string }>`
     select rev, payload, actor, updated_at from office_sync where sync_key = ${key}
@@ -33,6 +45,9 @@ export async function readSync(key: string) {
 }
 
 export async function writeSync(key: string, body: { rev?: number; data?: unknown }, actor?: string) {
+  if (!(await shopReadyForSync())) {
+    return { rev: 0, at: 0, data: null as unknown, blocked: true };
+  }
   const cur = await readSync(key);
   const nextRev = Math.max(cur.rev || 0, body.rev || 0) + 1;
   const payload = body.data ?? cur.data ?? {};
@@ -52,6 +67,7 @@ export async function addPushSub(opts: {
   subscription: { endpoint: string; keys?: { p256dh?: string; auth?: string } };
   device?: string;
 }) {
+  if (!(await shopReadyForSync())) return;
   const sql = await getSql();
   await sql`delete from push_subscriptions where endpoint = ${opts.subscription.endpoint}`;
   await sql`

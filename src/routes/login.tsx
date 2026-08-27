@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Radio } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -22,16 +22,21 @@ function Login() {
   });
   const [mode, setMode] = useState<"signin" | "activate">("activate");
   const showSetup = mode === "activate";
-  const [name, setName] = useState("");
-  const [username, setUsername] = useState("");
+  const [name, setName] = useState("Pat Maichle");
+  const [username, setUsername] = useState("pat");
   const [pin, setPin] = useState("");
   const [pin2, setPin2] = useState("");
   const [unlockCode, setUnlockCode] = useState("");
-  const [techName, setTechName] = useState("");
-  const [techUser, setTechUser] = useState("");
+  const [techName, setTechName] = useState("John Rivera");
+  const [techUser, setTechUser] = useState("john");
   const [techPin, setTechPin] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (status.data?.needsSetup === false) setMode("signin");
+    if (status.data?.needsSetup === true) setMode("activate");
+  }, [status.data?.needsSetup]);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();

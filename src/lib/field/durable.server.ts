@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { persistPgliteNow } from "@/lib/db";
+import { persistPgliteNow, shopFileActivated, currentDbSource } from "@/lib/db";
 
 export type GpsFixRecord = {
   employeeId: string;
@@ -76,6 +76,10 @@ async function filePut(state: DurableState) {
 
 export async function loadDurable(): Promise<DurableState> {
   if (mem.__fieldDurable__) return mem.__fieldDurable__;
+  if (currentDbSource() !== "neon" && !shopFileActivated()) {
+    mem.__fieldDurable__ = { ...EMPTY, gps: {}, ticketPins: {} };
+    return mem.__fieldDurable__;
+  }
   const fromBlob = await blobGet();
   const fromFile = fromBlob ?? (await fileGet());
   mem.__fieldDurable__ = fromFile ? { ...EMPTY, ...fromFile, gps: fromFile.gps ?? {}, ticketPins: fromFile.ticketPins ?? {} } : { ...EMPTY, gps: {}, ticketPins: {} };

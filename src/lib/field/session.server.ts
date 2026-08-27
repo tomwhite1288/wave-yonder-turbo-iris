@@ -134,7 +134,7 @@ export async function loadSettings(companyId: string): Promise<CompanySettings> 
     trialUnlockedAt: map.trial_unlocked_at || null,
     demoLocked: (map.demo_locked ?? "false") === "true",
   };
-  if (!settings.trialStartedAt) {
+  if (!settings.trialStartedAt && map.shop_activated === "true") {
     const iso = new Date().toISOString();
     await stampTrialStart(companyId, iso);
     settings.trialStartedAt = iso;

@@ -144,6 +144,24 @@ function localDataDir() {
   return path.join(process.cwd(), "data", "pglite");
 }
 
+function shopLockPath() {
+  return path.join(process.cwd(), "data", "shop.lock");
+}
+
+/** True only after Activate has finished. Sync/dump must not run before that. */
+export function shopFileActivated(): boolean {
+  try {
+    return existsSync(shopLockPath());
+  } catch {
+    return false;
+  }
+}
+
+export function markShopFileActivated() {
+  mkdirSync(path.dirname(shopLockPath()), { recursive: true });
+  writeFileSync(shopLockPath(), `${new Date().toISOString()}\n`);
+}
+
 async function loadPgliteDump(): Promise<Blob | File | undefined> {
   if (isServerlessRuntime()) {
     try {
@@ -167,6 +185,7 @@ async function loadPgliteDump(): Promise<Blob | File | undefined> {
 
 let persistTimer: ReturnType<typeof setTimeout> | null = null;
 function schedulePglitePersist(pg: import("@electric-sql/pglite").PGlite) {
+  if (!shopFileActivated() && !isServerlessRuntime()) return;
   if (persistTimer) clearTimeout(persistTimer);
   persistTimer = setTimeout(() => {
     void persistPgliteNow();
@@ -212,10 +231,10 @@ async function createPgliteSql(): Promise<Sql> {
       [OID_DATE]: identity,
       [OID_INTERVAL]: identity,
     };
-    const loadDataDir = await loadPgliteDump();
+    const loadDataDir = shopFileActivated() || isServerlessRuntime() ? await loadPgliteDump() : undefined;
     let pg: import("@electric-sql/pglite").PGlite;
     try {
-      if (!isServerlessRuntime()) {
+      if (!isServerlessRuntime() && shopFileActivated()) {
         const dir = localDataDir();
         mkdirSync(dir, { recursive: true });
         pg = new PGlite(dir, { loadDataDir, parsers, relaxedDurability: true });
